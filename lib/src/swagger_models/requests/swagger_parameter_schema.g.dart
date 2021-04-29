@@ -10,7 +10,9 @@ SwaggerParameterSchema _$SwaggerParameterSchemaFromJson(
     Map<String, dynamic> json) {
   return SwaggerParameterSchema(
     type: json['type'] as String? ?? '',
-    enumValues: SwaggerParameterSchema.enumsFromJson(json['enum'] as List?),
+    enumValues:
+        (json['enum'] as List<dynamic>?)?.map((e) => e as String).toList() ??
+            [],
     originalRef: json['originalRef'] as String? ?? '',
     ref: json[r'$ref'] as String? ?? '',
   );

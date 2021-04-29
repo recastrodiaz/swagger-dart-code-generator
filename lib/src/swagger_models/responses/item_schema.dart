@@ -1,6 +1,6 @@
 import 'package:json_annotation/json_annotation.dart';
 
-part 'item_schema.g2.dart';
+part 'item_schema.g.dart';
 
 @JsonSerializable()
 class ItemSchema {

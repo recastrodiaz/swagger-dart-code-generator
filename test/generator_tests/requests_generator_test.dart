@@ -99,7 +99,7 @@ void main() {
   group('Tests for parameters', () {
     test('Should ignore headers if option is true', () {
       final result = generator.generate(
-          request_with_header,
+          aaa,
           className,
           fileName,
           GeneratorOptions(
@@ -614,15 +614,18 @@ void main() {
   group('Tests for getAllMethodsContent', () {
     test('Should generate default name for method without operationId', () {
       final result = generator.getAllMethodsContent(
-          SwaggerRoot(paths: <SwaggerPath>[
-            SwaggerPath(path: '/test/path', requests: <SwaggerRequest>[
-              SwaggerRequest(
-                  type: 'get',
-                  operationId: '',
-                  parameters: <SwaggerRequestParameter>[],
-                  responses: <SwaggerResponse>[])
-            ])
-          ]),
+          SwaggerRoot(
+            paths: <String, SwaggerPath>{
+              '/test/path': SwaggerPath(
+                requests: <String, SwaggerRequest>{
+                  'get': SwaggerRequest(
+                      operationId: '',
+                      parameters: <SwaggerRequestParameter>[],
+                      responses: {})
+                },
+              )
+            },
+          ),
           '',
           GeneratorOptions(inputFolder: '', outputFolder: ''),
           [],
@@ -636,17 +639,21 @@ void main() {
         'Should generate additional method for enum in body for items -> enumValues',
         () {
       final result = generator.getAllMethodsContent(
-          SwaggerRoot(paths: <SwaggerPath>[
-            SwaggerPath(path: '/test/path', requests: <SwaggerRequest>[
-              SwaggerRequest(type: 'get', operationId: '', parameters: [
-                SwaggerRequestParameter(
-                    name: 'parameterName',
-                    inParameter: 'body',
-                    isRequired: true,
-                    items: SwaggerRequestItems(enumValues: ['one'])),
-              ], responses: <SwaggerResponse>[])
-            ])
-          ]),
+          SwaggerRoot(
+            paths: <String, SwaggerPath>{
+              '/test/path': SwaggerPath(
+                requests: <String, SwaggerRequest>{
+                  'get': SwaggerRequest(operationId: '', parameters: [
+                    SwaggerRequestParameter(
+                        name: 'parameterName',
+                        inParameter: 'body',
+                        isRequired: true,
+                        items: SwaggerRequestItems(enumValues: ['one'])),
+                  ], responses: {})
+                },
+              )
+            },
+          ),
           '',
           GeneratorOptions(inputFolder: '', outputFolder: ''),
           [],
@@ -660,17 +667,21 @@ void main() {
         'Should generate additional method for enum in body for -> schema -> enumValues',
         () {
       final result = generator.getAllMethodsContent(
-          SwaggerRoot(paths: <SwaggerPath>[
-            SwaggerPath(path: '/test/path', requests: <SwaggerRequest>[
-              SwaggerRequest(type: 'get', operationId: '', parameters: [
-                SwaggerRequestParameter(
-                    name: 'parameterName',
-                    inParameter: 'body',
-                    isRequired: true,
-                    schema: SwaggerParameterSchema(enumValues: ['one'])),
-              ], responses: <SwaggerResponse>[])
-            ])
-          ]),
+          SwaggerRoot(
+            paths: <String, SwaggerPath>{
+              '/test/path': SwaggerPath(
+                requests: <String, SwaggerRequest>{
+                  'get': SwaggerRequest(operationId: '', parameters: [
+                    SwaggerRequestParameter(
+                        name: 'parameterName',
+                        inParameter: 'body',
+                        isRequired: true,
+                        schema: SwaggerParameterSchema(enumValues: ['one'])),
+                  ], responses: {})
+                },
+              )
+            },
+          ),
           '',
           GeneratorOptions(inputFolder: '', outputFolder: ''),
           [],
@@ -684,17 +695,21 @@ void main() {
         'Should generate additional method for enum in body for item -> enumValues',
         () {
       final result = generator.getAllMethodsContent(
-          SwaggerRoot(paths: <SwaggerPath>[
-            SwaggerPath(path: '/test/path', requests: <SwaggerRequest>[
-              SwaggerRequest(type: 'get', operationId: '', parameters: [
-                SwaggerRequestParameter(
-                    name: 'parameterName',
-                    inParameter: 'body',
-                    isRequired: true,
-                    item: ParameterItem(enumValues: ['one'])),
-              ], responses: <SwaggerResponse>[])
-            ])
-          ]),
+          SwaggerRoot(
+            paths: <String, SwaggerPath>{
+              '/test/path': SwaggerPath(
+                requests: <String, SwaggerRequest>{
+                  'get': SwaggerRequest(operationId: '', parameters: [
+                    SwaggerRequestParameter(
+                        name: 'parameterName',
+                        inParameter: 'body',
+                        isRequired: true,
+                        item: ParameterItem(enumValues: ['one'])),
+                  ], responses: {})
+                },
+              )
+            },
+          ),
           '',
           GeneratorOptions(inputFolder: '', outputFolder: ''),
           [],
@@ -844,7 +859,8 @@ void main() {
             outputFolder: '',
           ));
 
-          expect(result, contains('Future<chopper.Response<ModelItemsGet\$Response>>'));
+      expect(result,
+          contains('Future<chopper.Response<ModelItemsGet\$Response>>'));
     });
   });
 }

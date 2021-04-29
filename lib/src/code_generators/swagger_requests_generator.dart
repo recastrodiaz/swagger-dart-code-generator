@@ -113,11 +113,13 @@ $allMethodsContent
     final requestBodies =
         components == null ? null : components['requestBodies'];
 
-    swaggerRoot.paths.forEach((SwaggerPath swaggerPath) {
+    swaggerRoot.paths.forEach((String path, SwaggerPath swaggerPath) {
       swaggerPath.requests
-          .where((SwaggerRequest swaggerRequest) =>
-              swaggerRequest.type.toLowerCase() != requestTypeOptions)
-          .forEach((SwaggerRequest swaggerRequest) {
+          .forEach((String requestType, SwaggerRequest swaggerRequest) {
+        if (requestType.toLowerCase() == requestTypeOptions) {
+          return;
+        }
+
         swaggerRequest.parameters = swaggerRequest.parameters
             .where((element) => element.inParameter.isNotEmpty)
             .toList();
@@ -130,7 +132,7 @@ $allMethodsContent
         if (options.usePathForRequestNames ||
             swaggerRequest.operationId.isEmpty) {
           methodName = SwaggerModelsGenerator.generateRequestName(
-              swaggerPath.path, swaggerRequest.type);
+              path, requestType);
         } else {
           methodName = swaggerRequest.operationId;
         }
@@ -175,7 +177,7 @@ $allMethodsContent
 
         if (swaggerRequest.parameters
                 .every((parameter) => parameter.inParameter != 'body') &&
-            swaggerRequest.type.toLowerCase() == 'post') {
+            requestType.toLowerCase() == 'post') {
           swaggerRequest.parameters.add(SwaggerRequestParameter(
               inParameter: 'body', name: 'body', isRequired: true));
         }
@@ -183,9 +185,9 @@ $allMethodsContent
         final allParametersContent = getAllParametersContent(
           listParameters: swaggerRequest.parameters,
           ignoreHeaders: options.ignoreHeaders,
-          path: swaggerPath.path,
+          path: path,
           allEnumNames: allEnumNames,
-          requestType: swaggerRequest.type,
+          requestType: requestType,
           useRequiredAttribute: options.useRequiredAttributeForHeaders,
         );
 
@@ -208,20 +210,20 @@ $allMethodsContent
             getParameterCommentsForMethod(swaggerRequest.parameters, options);
 
         final returnTypeName = getReturnTypeName(
-            swaggerRequest.responses,
-            swaggerPath.path,
-            swaggerRequest.type,
+            swaggerRequest.responses.values.toList(),
+            path,
+            requestType,
             options.responseOverrideValueMap,
             dynamicResponses,
             basicTypesMap);
 
         final generatedMethod = getMethodContent(
             summary: swaggerRequest.summary,
-            typeRequest: swaggerRequest.type,
+            typeRequest: requestType,
             methodName: methodName,
             parametersContent: allParametersContent,
             parametersComments: parameterCommentsForMethod,
-            requestPath: swaggerPath.path,
+            requestPath: path,
             hasFormData: hasFormData,
             returnType: returnTypeName,
             hasEnums: hasEnums,

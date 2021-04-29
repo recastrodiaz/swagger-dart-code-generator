@@ -30,7 +30,6 @@
 build/
 
 # Code generation related
-*.g.dart
 *.chopper.dart
 *.lock
 *.swagger.dart

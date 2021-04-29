@@ -18,8 +18,8 @@ class SwaggerRequestsGeneratorV3 extends SwaggerRequestsGenerator {
     final swaggerRoot = SwaggerRoot.fromJson(map);
 
     //Link defined parameters with requests
-    swaggerRoot.paths.forEach((SwaggerPath swaggerPath) {
-      swaggerPath.requests.forEach((SwaggerRequest swaggerRequest) {
+    swaggerRoot.paths.forEach((String key, SwaggerPath swaggerPath) {
+      swaggerPath.requests.forEach((String req, SwaggerRequest swaggerRequest) {
         swaggerRequest.parameters = swaggerRequest.parameters
             .map((SwaggerRequestParameter parameter) =>
                 SwaggerEnumsGenerator.getOriginalOrOverriddenRequestParameter(
