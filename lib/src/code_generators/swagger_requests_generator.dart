@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import 'package:code_builder/code_builder.dart';
+import 'package:dart_style/dart_style.dart';
 import 'package:swagger_dart_code_generator/src/models/generator_options.dart';
 import 'package:swagger_dart_code_generator/src/code_generators/swagger_models_generator.dart';
 import 'package:swagger_dart_code_generator/src/extensions/string_extension.dart';
@@ -24,6 +26,21 @@ abstract class SwaggerRequestsGenerator {
     'OK',
     'default response'
   ];
+
+  final _kBasicTypesMap = const <String, String>{
+    'integer': 'int',
+    'int': 'int',
+    'boolean': 'bool',
+    'bool': 'bool',
+    'string': 'String',
+    'file': 'List<String>',
+    'number': 'num',
+    'object': 'Object',
+  };
+
+  static const _kObject = 'object';
+  static const _kHeader = 'header';
+  static const _kArray = 'array';
 
   String generate(
       String code, String className, String fileName, GeneratorOptions options);
@@ -64,7 +81,7 @@ $allMethodsContent
       basicTypesMap,
     );
     final result = generateFileContent(
-        classContent, chopperClientContent, allMethodsContent);
+        classContent, chopperClientContent, 'allMethodsContent');
 
     return result;
   }
@@ -98,20 +115,14 @@ $allMethodsContent
     return results;
   }
 
-  String getAllMethodsContent(
+  List<Method> getAllMethodsContent(
     SwaggerRoot swaggerRoot,
-    String dartCode,
     GeneratorOptions options,
     List<String> allEnumNames,
     List<String> dynamicResponses,
     Map<String, String> basicTypesMap,
   ) {
-    final methods = StringBuffer();
-
-    final dynamic map = dartCode.isNotEmpty ? jsonDecode(dartCode) : {};
-    final components = map['components'] as Map<String, dynamic>?;
-    final requestBodies =
-        components == null ? null : components['requestBodies'];
+    final methods = <Method>[];
 
     swaggerRoot.paths.forEach((String path, SwaggerPath swaggerPath) {
       swaggerPath.requests
@@ -120,94 +131,22 @@ $allMethodsContent
           return;
         }
 
-        swaggerRequest.parameters = swaggerRequest.parameters
-            .where((element) => element.inParameter.isNotEmpty)
-            .toList();
-
         final hasFormData = swaggerRequest.parameters.any(
             (SwaggerRequestParameter swaggerRequestParameter) =>
                 swaggerRequestParameter.inParameter == 'formData');
 
-        String methodName;
-        if (options.usePathForRequestNames ||
-            swaggerRequest.operationId.isEmpty) {
-          methodName = SwaggerModelsGenerator.generateRequestName(
-              path, requestType);
-        } else {
-          methodName = swaggerRequest.operationId;
-        }
+        final methodName = _getRequestMethodName(
+            requestType: requestType,
+            swaggerRequest: swaggerRequest,
+            path: path,
+            options: options);
 
-        if (swaggerRequest.requestBody?.content != null &&
-            swaggerRequest.parameters
-                .every((parameter) => parameter.inParameter != 'body')) {
-          final additionalParameter = swaggerRequest.requestBody?.content;
-          swaggerRequest.parameters.add(SwaggerRequestParameter(
-              inParameter: 'body',
-              name: 'body',
-              isRequired: true,
-              type: _getBodyParameterType(additionalParameter),
-              ref: additionalParameter?.ref ??
-                  additionalParameter?.items?.ref ??
-                  ''));
-        }
-
-        final requestBody = swaggerRequest.requestBody?.ref;
-        if (requestBody?.isNotEmpty == true) {
-          var requestBodyType = requestBody!.split('/').last;
-
-          final bodySchema =
-              requestBodies == null ? null : requestBodies[requestBodyType];
-
-          if (bodySchema?.isNotEmpty == true) {
-            final content = bodySchema['content'] as Map?;
-            final firstContent =
-                content == null ? null : content[content.keys.first];
-            final schema = firstContent['schema'] as Map;
-            if (schema.containsKey('\$ref')) {
-              requestBodyType = schema['\$ref'].split('/').last.toString();
-            }
-          }
-
-          swaggerRequest.parameters.add(SwaggerRequestParameter(
-              inParameter: 'body',
-              name: 'body',
-              isRequired: true,
-              type: requestBodyType.capitalize));
-        }
-
-        if (swaggerRequest.parameters
-                .every((parameter) => parameter.inParameter != 'body') &&
-            requestType.toLowerCase() == 'post') {
-          swaggerRequest.parameters.add(SwaggerRequestParameter(
-              inParameter: 'body', name: 'body', isRequired: true));
-        }
-
-        final allParametersContent = getAllParametersContent(
+        final parameters = _getAllParameters(
           listParameters: swaggerRequest.parameters,
           ignoreHeaders: options.ignoreHeaders,
           path: path,
-          allEnumNames: allEnumNames,
           requestType: requestType,
-          useRequiredAttribute: options.useRequiredAttributeForHeaders,
         );
-
-        final hasEnums = swaggerRequest.parameters.any((parameter) =>
-            parameter.items?.enumValues.isNotEmpty == true ||
-            parameter.item?.enumValues.isNotEmpty == true ||
-            parameter.schema?.enumValues.isNotEmpty == true ||
-            allEnumNames.contains(
-                'enums.${parameter.ref.isEmpty ? "" : parameter.ref.split("/").last.pascalCase}'));
-
-        final enumInBodyName = swaggerRequest.parameters.firstWhereOrNull(
-          (parameter) =>
-              parameter.inParameter == 'body' &&
-              (parameter.items?.enumValues.isNotEmpty == true ||
-                  parameter.item?.enumValues.isNotEmpty == true ||
-                  parameter.schema?.enumValues.isNotEmpty == true),
-        );
-
-        final parameterCommentsForMethod =
-            getParameterCommentsForMethod(swaggerRequest.parameters, options);
 
         final returnTypeName = getReturnTypeName(
             swaggerRequest.responses.values.toList(),
@@ -217,44 +156,31 @@ $allMethodsContent
             dynamicResponses,
             basicTypesMap);
 
-        final generatedMethod = getMethodContent(
-            summary: swaggerRequest.summary,
-            typeRequest: requestType,
-            methodName: methodName,
-            parametersContent: allParametersContent,
-            parametersComments: parameterCommentsForMethod,
-            requestPath: path,
-            hasFormData: hasFormData,
-            returnType: returnTypeName,
-            hasEnums: hasEnums,
-            enumInBodyName: enumInBodyName?.name ?? '',
-            ignoreHeaders: options.ignoreHeaders,
-            allEnumNames: allEnumNames,
-            parameters: swaggerRequest.parameters);
+        final method = _generateRequestMethod();
 
-        methods.writeln(generatedMethod);
+        // final generatedMethod = getMethodContent(
+        //     summary: swaggerRequest.summary,
+        //     typeRequest: requestType,
+        //     methodName: methodName,
+        //     parametersContent: allParametersContent,
+        //     parametersComments: parameterCommentsForMethod,
+        //     requestPath: path,
+        //     hasFormData: hasFormData,
+        //     returnType: returnTypeName,
+        //     hasEnums: true,
+        //     enumInBodyName: enumInBodyName?.name ?? '',
+        //     ignoreHeaders: options.ignoreHeaders,
+        //     allEnumNames: allEnumNames,
+        //     parameters: swaggerRequest.parameters);
+
+        methods.add(Method((m) => m
+          ..requiredParameters.addAll(parameters)
+          ..name = methodName
+          ..returns = Reference(returnTypeName)));
       });
     });
 
-    return methods.toString();
-  }
-
-  String _getBodyParameterType(RequestContent? content) {
-    if (content == null) {
-      return 'Object';
-    }
-
-    if (content.type.toLowerCase() == 'array') {
-      if (content.items?.ref == null || content.items!.ref.isEmpty) {
-        return 'Object';
-      }
-
-      final type = content.items!.ref.split('/').last.capitalize;
-
-      return 'List<$type>';
-    }
-
-    return content.type;
+    return methods;
   }
 
   String getParameterCommentsForMethod(
@@ -274,7 +200,7 @@ $allMethodsContent
       String parameterDescription,
       String inParameter,
       GeneratorOptions options) {
-    if (inParameter == 'header' && options.ignoreHeaders) {
+    if (inParameter == _kHeader && options.ignoreHeaders) {
       return '';
     }
     if (parameterDescription.isNotEmpty) {
@@ -314,7 +240,7 @@ $allMethodsContent
       List<String> allEnumNames) {
     final filteredParameters = parameters
         .where((parameter) =>
-            ignoreHeaders ? parameter.inParameter != 'header' : true)
+            ignoreHeaders ? parameter.inParameter != _kHeader : true)
         .toList();
 
     final enumParametersNames = parameters
@@ -345,7 +271,7 @@ $allMethodsContent
       [String ref = '']) {
     final enumListParametersNames = parameters
         .where((parameter) =>
-            parameter.type == 'array' &&
+            parameter.type == _kArray &&
             (parameter.items?.enumValues.isNotEmpty == true ||
                 parameter.item?.enumValues.isNotEmpty == true ||
                 parameter.schema?.enumValues.isNotEmpty == true))
@@ -495,7 +421,7 @@ $allMethodsContent
         return 'List<int>';
       case 'number':
         return 'num';
-      case 'object':
+      case _kObject:
         return 'Object';
       default:
         return validateParameterType(parameter);
@@ -521,7 +447,7 @@ $allMethodsContent
         parameterType = 'enums.$parameterType';
       }
 
-      if (parameter.type == 'array') {
+      if (parameter.type == _kArray) {
         parameterType = 'List<$parameterType>';
       }
     } else if (parameter.schema?.ref.isNotEmpty ?? false) {
@@ -621,28 +547,125 @@ abstract class $className extends ChopperService''';
     return classWithoutChopper;
   }
 
-  String getAllParametersContent(
-      {required List<SwaggerRequestParameter> listParameters,
-      required bool ignoreHeaders,
-      required String path,
-      required String requestType,
-      required List<String> allEnumNames,
-      required bool useRequiredAttribute}) {
-    return listParameters
-        .map((SwaggerRequestParameter parameter) => getParameterContent(
-              parameter: parameter,
-              ignoreHeaders: ignoreHeaders,
-              path: path,
-              allEnumNames: allEnumNames,
-              requestType: requestType,
-              useRequiredAttribute: useRequiredAttribute,
-            ))
-        .where((String element) => element.isNotEmpty)
-        .join(', ');
+  Expression _getParameterAnnotation(SwaggerRequestParameter parameter) {
+    String annotation;
+    switch (parameter.inParameter) {
+      case 'body':
+        annotation = 'Body';
+        break;
+      case 'formData':
+        annotation = 'Field';
+        break;
+      case _kHeader:
+        annotation = 'Header';
+        break;
+      default:
+        annotation = parameter.inParameter.pascalCase;
+    }
+
+    return refer(annotation).call([literalString(parameter.name)]);
   }
 
-  SwaggerResponse? getSuccessedResponse(List<SwaggerResponse> responses) {
-    return responses.firstWhereOrNull(
+  String _getParameterTypeFromRef(String ref) {
+    return ref.split('/').last.pascalCase;
+  }
+
+  String _getEnumParameterTypeName(
+      {required String parameterName,
+      required String path,
+      required String requestType}) {
+    return 'enums.${path.split('/').map((e) => e.pascalCase).join()}\$${requestType.pascalCase}\$${parameterName.pascalCase}';
+  }
+
+  String _getParameterTypeName(
+      {required SwaggerRequestParameter parameter,
+      required String path,
+      required String requestType}) {
+    if (parameter.items?.enumValues.isNotEmpty == true ||
+        parameter.schema?.enumValues.isNotEmpty == true) {
+      return _getEnumParameterTypeName(
+          parameterName: parameter.name, path: path, requestType: requestType);
+    } else if (parameter.items?.type.isNotEmpty == true) {
+      return 'List<${_mapParameterName(parameter.items!.type)}>';
+    } else if (parameter.schema?.ref.isNotEmpty == true) {
+      return _getParameterTypeFromRef(parameter.schema!.ref);
+    }
+    final neededType = parameter.type.isNotEmpty
+        ? parameter.type
+        : parameter.schema?.type ?? '';
+
+    return _mapParameterName(neededType);
+  }
+
+  String _mapParameterName(String name) {
+    return _kBasicTypesMap[name] ?? name.pascalCase;
+  }
+
+  List<Parameter> _getAllParameters({
+    required List<SwaggerRequestParameter> listParameters,
+    required bool ignoreHeaders,
+    required String path,
+    required String requestType,
+  }) {
+    final result = listParameters
+        .where((swaggerParameter) =>
+            ignoreHeaders ? swaggerParameter.inParameter != _kHeader : true)
+        .where((swaggerParameter) => swaggerParameter.inParameter.isNotEmpty)
+        .map(
+          (swaggerParameter) => Parameter(
+            (p) => p
+              ..name = swaggerParameter.name
+              ..type = Reference(_getParameterTypeName(
+                parameter: swaggerParameter,
+                path: path,
+                requestType: requestType,
+              ))
+              ..named = true
+              ..annotations.add(
+                _getParameterAnnotation(swaggerParameter),
+              ),
+          ),
+        )
+        .toList();
+
+    final animal = Class((c) => c
+      ..methods.add(Method((m) => m
+        ..requiredParameters.addAll(result)
+        ..name = 'someMethod'))
+      ..name = 'ClassName');
+
+    final tt = animal.accept(DartEmitter()).toString();
+
+    return result;
+
+    //return listParameters;
+    // .map((SwaggerRequestParameter parameter) => getParameterContent(
+    //       parameter: parameter,
+    //       ignoreHeaders: ignoreHeaders,
+    //       path: path,
+    //       allEnumNames: allEnumNames,
+    //       requestType: requestType,
+    //       useRequiredAttribute: useRequiredAttribute,
+    //     ))
+    // .where((String element) => element.isNotEmpty)
+    // .join(', ');
+  }
+
+  String _getRequestMethodName({
+    required SwaggerRequest swaggerRequest,
+    required GeneratorOptions options,
+    required String path,
+    required String requestType,
+  }) {
+    if (options.usePathForRequestNames || swaggerRequest.operationId.isEmpty) {
+      return SwaggerModelsGenerator.generateRequestName(path, requestType);
+    } else {
+      return swaggerRequest.operationId;
+    }
+  }
+
+  SwaggerResponse getSuccessedResponse(List<SwaggerResponse> responses) {
+    return responses.firstWhere(
       (SwaggerResponse response) =>
           successDescriptions.contains(response.description) ||
           successResponseCodes.contains(response.code),
@@ -656,82 +679,115 @@ abstract class $className extends ChopperService''';
     return '$urlString$methodNamePart\$Response';
   }
 
-  String getReturnTypeName(
-      List<SwaggerResponse> responses,
-      String url,
-      String methodName,
-      List<ResponseOverrideValueMap> overriddenRequests,
-      List<String> dynamicResponses,
-      Map<String, String> basicTypesMap) {
-    if (overriddenRequests
-            .any((ResponseOverrideValueMap element) => element.url == url) ==
-        true) {
-      final overriddenResponse = overriddenRequests
-          .firstWhere((ResponseOverrideValueMap element) => element.url == url);
+  String? _getReturnTypeFromType(SwaggerResponse swaggerResponse) {
+    final responseType = swaggerResponse.schema?.type ?? '';
+    if (responseType.isEmpty) {
+      return null;
+    }
 
-      if (overriddenResponse.method == methodName) {
-        return overriddenResponse.overriddenValue;
+    if (responseType == _kArray) {
+      final itemsOriginalRef = swaggerResponse.schema?.items?.originalRef;
+      final itemsType = swaggerResponse.schema?.items?.type;
+      final arrayType = itemsOriginalRef ?? itemsType ?? _kObject;
+      final mappedArrayType = _kBasicTypesMap[arrayType] ?? arrayType;
+
+      return 'List<$mappedArrayType>';
+    }
+
+    return responseType;
+  }
+
+  String _getRef(String ref) {
+    return ref.split('/').last.pascalCase;
+  }
+
+  String? _getReturnTypeFromSchema(SwaggerResponse swaggerResponse) {
+    final listRef = swaggerResponse.schema?.items?.ref ?? '';
+
+    if (listRef.isNotEmpty) {
+      return 'List<${_getRef(listRef)}>';
+    }
+
+    final ref = swaggerResponse.schema?.ref ?? swaggerResponse.ref;
+
+    if (ref.isNotEmpty) {
+      return _getRef(ref);
+    }
+    return null;
+  }
+
+  String? _getReturnTypeFromOriginalRef(SwaggerResponse swaggerResponse) {
+    if (swaggerResponse.schema?.originalRef.isNotEmpty == true) {
+      return swaggerResponse.schema?.originalRef;
+    }
+
+    return null;
+  }
+
+  String? _getReturnTypeFromContent(SwaggerResponse swaggerResponse) {
+    if (swaggerResponse.content.isNotEmpty) {
+      final ref = swaggerResponse.content.first.ref;
+      if (ref.isNotEmpty) {
+        final type = _getRef(ref);
+        return _kBasicTypesMap[type] ?? type;
       }
+
+      final responseType = swaggerResponse.content.first.responseType;
+
+      if (responseType.isNotEmpty) {
+        if (responseType == _kArray) {
+          final originalRef = swaggerResponse.schema?.items?.originalRef ?? '';
+
+          if (originalRef.isNotEmpty) {
+            return 'List<${_kBasicTypesMap[originalRef]}>';
+          }
+
+          final ref = swaggerResponse.content.firstOrNull?.items?.ref ?? '';
+          if (ref.isNotEmpty) {
+            return 'List<${_kBasicTypesMap[ref]}>';
+          }
+        }
+
+        return _kBasicTypesMap[responseType] ?? responseType;
+      }
+    }
+  }
+
+  String _getReturnTypeName({
+    required List<SwaggerResponse> responses,
+    required Map<String, ResponseOverrideValueMap> overridenResponses,
+    required String path,
+    required String methodName,
+  }) {
+    if (overridenResponses.containsKey(path)) {
+      return overridenResponses[path]!.overriddenValue;
     }
 
     final neededResponse = getSuccessedResponse(responses);
 
-    if (neededResponse == null) {
-      return '';
-    }
-
-    if (neededResponse.schema?.type == 'object' &&
+    if (neededResponse.schema?.type == _kObject &&
         neededResponse.schema?.properties.isNotEmpty == true) {
-      return getResponseModelName(url, methodName);
+      return getResponseModelName(path, methodName);
     }
 
-    if (neededResponse.schema?.type.isNotEmpty ?? false) {
-      final param = neededResponse.schema?.items?.originalRef.isNotEmpty == true
-          ? neededResponse.schema?.items?.originalRef
-          : neededResponse.schema?.items?.type.isNotEmpty == true
-              ? neededResponse.schema?.items?.type
-              : neededResponse.schema?.items?.ref.split('/').lastOrNull ?? '';
-      return getParameterTypeName(neededResponse.schema?.type ?? '', param!);
+    var type = _getReturnTypeFromType(neededResponse);
+    if (type != null) {
+      return type;
     }
 
-    if (neededResponse.schema?.ref.isNotEmpty ?? false) {
-      return neededResponse.schema?.ref.split('/').lastOrNull ?? '';
+    type = _getReturnTypeFromSchema(neededResponse);
+    if (type != null) {
+      return type;
     }
 
-    if (neededResponse.ref.isNotEmpty) {
-      final ref = neededResponse.ref.split('/').last.capitalize;
-
-      if (neededResponse.ref.contains('/responses') &&
-          dynamicResponses.contains(ref)) {
-        return 'object';
-      } else {
-        return ref;
-      }
+    type = _getReturnTypeFromOriginalRef(neededResponse);
+    if (type != null) {
+      return type;
     }
 
-    if (neededResponse.schema?.originalRef.isNotEmpty ?? false) {
-      return neededResponse.schema?.originalRef ?? '';
-    }
-
-    if (neededResponse.content.isNotEmpty == true &&
-        neededResponse.content.isNotEmpty) {
-      if (neededResponse.content.first.ref.isNotEmpty) {
-        final type = neededResponse.content.first.ref.split('/').last;
-
-        if (basicTypesMap.containsKey(type.toString())) {
-          return basicTypesMap[type] ?? '';
-        }
-        return type;
-      }
-      if (neededResponse.content.first.responseType.isNotEmpty) {
-        return getParameterTypeName(
-            neededResponse.content.first.responseType,
-            neededResponse.schema?.items?.originalRef ??
-                neededResponse.content.firstOrNull?.items?.ref
-                    .split('/')
-                    .lastOrNull ??
-                '');
-      }
+    type = _getReturnTypeFromContent(neededResponse);
+    if (type != null) {
+      return type;
     }
 
     return '';
