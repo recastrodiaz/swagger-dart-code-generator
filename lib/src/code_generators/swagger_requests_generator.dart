@@ -148,7 +148,7 @@ $allMethodsContent
           requestType: requestType,
         );
 
-        final returnTypeName = getReturnTypeName(
+        final returnTypeName = _getReturnTypeName(
             swaggerRequest.responses.values.toList(),
             path,
             requestType,
