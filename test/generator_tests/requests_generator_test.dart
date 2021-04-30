@@ -2,12 +2,9 @@ import 'package:swagger_dart_code_generator/src/code_generators/v3/swagger_reque
 import 'package:swagger_dart_code_generator/src/models/generator_options.dart';
 import 'package:swagger_dart_code_generator/src/swagger_models/requests/parameter_item.dart';
 import 'package:swagger_dart_code_generator/src/swagger_models/requests/swagger_parameter_schema.dart';
-import 'package:swagger_dart_code_generator/src/swagger_models/requests/swagger_request.dart';
 import 'package:swagger_dart_code_generator/src/swagger_models/requests/swagger_request_items.dart';
 import 'package:swagger_dart_code_generator/src/swagger_models/requests/swagger_request_parameter.dart';
 import 'package:swagger_dart_code_generator/src/swagger_models/responses/swagger_response.dart';
-import 'package:swagger_dart_code_generator/src/swagger_models/swagger_path.dart';
-import 'package:swagger_dart_code_generator/src/swagger_models/swagger_root.dart';
 import 'package:test/test.dart';
 
 import '../code_examples.dart';
@@ -309,22 +306,6 @@ void main() {
       expect(result,
           contains('Future<chopper.Response<TestType>> getModelItems();'));
     });
-
-    test('Should generate return type by content -> first -> ref', () {
-      final result = generator.getReturnTypeName(
-          <SwaggerResponse>[
-            SwaggerResponse(code: '200', content: <Content>[
-              Content(ref: '#components/schemas/TestItem')
-            ])
-          ],
-          '/test/items',
-          'get',
-          <ResponseOverrideValueMap>[],
-          [],
-          {});
-
-      expect(result, equals('TestItem'));
-    });
   });
 
   group('Tests for getSuccessedResponse', () {
@@ -611,114 +592,6 @@ void main() {
     });
   });
 
-  group('Tests for getAllMethodsContent', () {
-    test('Should generate default name for method without operationId', () {
-      final result = generator.getAllMethodsContent(
-          SwaggerRoot(
-            paths: <String, SwaggerPath>{
-              '/test/path': SwaggerPath(
-                requests: <String, SwaggerRequest>{
-                  'get': SwaggerRequest(
-                      operationId: '',
-                      parameters: <SwaggerRequestParameter>[],
-                      responses: {})
-                },
-              )
-            },
-          ),
-          '',
-          GeneratorOptions(inputFolder: '', outputFolder: ''),
-          [],
-          [],
-          {});
-
-      expect(result, contains('Future<chopper.Response> testPathGet();'));
-    });
-
-    test(
-        'Should generate additional method for enum in body for items -> enumValues',
-        () {
-      final result = generator.getAllMethodsContent(
-          SwaggerRoot(
-            paths: <String, SwaggerPath>{
-              '/test/path': SwaggerPath(
-                requests: <String, SwaggerRequest>{
-                  'get': SwaggerRequest(operationId: '', parameters: [
-                    SwaggerRequestParameter(
-                        name: 'parameterName',
-                        inParameter: 'body',
-                        isRequired: true,
-                        items: SwaggerRequestItems(enumValues: ['one'])),
-                  ], responses: {})
-                },
-              )
-            },
-          ),
-          '',
-          GeneratorOptions(inputFolder: '', outputFolder: ''),
-          [],
-          [],
-          {});
-
-      expect(result, contains('Future<chopper.Response> _testPathGet'));
-    });
-
-    test(
-        'Should generate additional method for enum in body for -> schema -> enumValues',
-        () {
-      final result = generator.getAllMethodsContent(
-          SwaggerRoot(
-            paths: <String, SwaggerPath>{
-              '/test/path': SwaggerPath(
-                requests: <String, SwaggerRequest>{
-                  'get': SwaggerRequest(operationId: '', parameters: [
-                    SwaggerRequestParameter(
-                        name: 'parameterName',
-                        inParameter: 'body',
-                        isRequired: true,
-                        schema: SwaggerParameterSchema(enumValues: ['one'])),
-                  ], responses: {})
-                },
-              )
-            },
-          ),
-          '',
-          GeneratorOptions(inputFolder: '', outputFolder: ''),
-          [],
-          [],
-          {});
-
-      expect(result, contains('Future<chopper.Response> _testPathGet'));
-    });
-
-    test(
-        'Should generate additional method for enum in body for item -> enumValues',
-        () {
-      final result = generator.getAllMethodsContent(
-          SwaggerRoot(
-            paths: <String, SwaggerPath>{
-              '/test/path': SwaggerPath(
-                requests: <String, SwaggerRequest>{
-                  'get': SwaggerRequest(operationId: '', parameters: [
-                    SwaggerRequestParameter(
-                        name: 'parameterName',
-                        inParameter: 'body',
-                        isRequired: true,
-                        item: ParameterItem(enumValues: ['one'])),
-                  ], responses: {})
-                },
-              )
-            },
-          ),
-          '',
-          GeneratorOptions(inputFolder: '', outputFolder: ''),
-          [],
-          [],
-          {});
-
-      expect(result, contains('Future<chopper.Response> _testPathGet'));
-    });
-  });
   group('Tests for getMethodContent', () {
     test('Should', () {
       final result = generator.getMethodContent(

@@ -57,7 +57,7 @@ $allMethodsContent
     return result;
   }
 
-  String getFileContent(
+  Class generateService(
     SwaggerRoot swaggerRoot,
     String dartCode,
     String className,
@@ -68,22 +68,17 @@ $allMethodsContent
     List<String> dynamicResponses,
     Map<String, String> basicTypesMap,
   ) {
-    final classContent =
-        getRequestClassContent(swaggerRoot.host, className, fileName, options);
-    final chopperClientContent = getChopperClientContent(
-        className, swaggerRoot.host, swaggerRoot.basePath, options, hasModels);
-    final allMethodsContent = getAllMethodsContent(
-      swaggerRoot,
-      dartCode,
-      options,
-      allEnumNames,
-      dynamicResponses,
-      basicTypesMap,
+    final allMethodsContent = _getAllMethodsContent(
+      swaggerRoot: swaggerRoot,
+      options: options,
+      basicTypesMap: basicTypesMap,
     );
-    final result = generateFileContent(
-        classContent, chopperClientContent, 'allMethodsContent');
 
-    return result;
+    return Class(
+      (c) => c
+        ..methods.addAll(allMethodsContent)
+        ..name = 'className',
+    );
   }
 
   static List<String> getAllDynamicResponses(String dartCode) {
@@ -115,13 +110,11 @@ $allMethodsContent
     return results;
   }
 
-  List<Method> getAllMethodsContent(
-    SwaggerRoot swaggerRoot,
-    GeneratorOptions options,
-    List<String> allEnumNames,
-    List<String> dynamicResponses,
-    Map<String, String> basicTypesMap,
-  ) {
+  List<Method> _getAllMethodsContent({
+    required SwaggerRoot swaggerRoot,
+    required GeneratorOptions options,
+    required Map<String, String> basicTypesMap,
+  }) {
     final methods = <Method>[];
 
     swaggerRoot.paths.forEach((String path, SwaggerPath swaggerPath) {
@@ -130,10 +123,6 @@ $allMethodsContent
         if (requestType.toLowerCase() == requestTypeOptions) {
           return;
         }
-
-        final hasFormData = swaggerRequest.parameters.any(
-            (SwaggerRequestParameter swaggerRequestParameter) =>
-                swaggerRequestParameter.inParameter == 'formData');
 
         final methodName = _getRequestMethodName(
             requestType: requestType,
@@ -149,29 +138,13 @@ $allMethodsContent
         );
 
         final returnTypeName = _getReturnTypeName(
-            swaggerRequest.responses.values.toList(),
-            path,
-            requestType,
-            options.responseOverrideValueMap,
-            dynamicResponses,
-            basicTypesMap);
-
-        final method = _generateRequestMethod();
-
-        // final generatedMethod = getMethodContent(
-        //     summary: swaggerRequest.summary,
-        //     typeRequest: requestType,
-        //     methodName: methodName,
-        //     parametersContent: allParametersContent,
-        //     parametersComments: parameterCommentsForMethod,
-        //     requestPath: path,
-        //     hasFormData: hasFormData,
-        //     returnType: returnTypeName,
-        //     hasEnums: true,
-        //     enumInBodyName: enumInBodyName?.name ?? '',
-        //     ignoreHeaders: options.ignoreHeaders,
-        //     allEnumNames: allEnumNames,
-        //     parameters: swaggerRequest.parameters);
+          responses: swaggerRequest.responses.values.toList(),
+          path: path,
+          methodName: methodName,
+          overridenResponses: options.responseOverrideValueMap
+              .asMap()
+              .map((key, value) => MapEntry(value.url, value)),
+        );
 
         methods.add(Method((m) => m
           ..requiredParameters.addAll(parameters)
@@ -628,14 +601,6 @@ abstract class $className extends ChopperService''';
         )
         .toList();
 
-    final animal = Class((c) => c
-      ..methods.add(Method((m) => m
-        ..requiredParameters.addAll(result)
-        ..name = 'someMethod'))
-      ..name = 'ClassName');
-
-    final tt = animal.accept(DartEmitter()).toString();
-
     return result;
 
     //return listParameters;
@@ -664,8 +629,8 @@ abstract class $className extends ChopperService''';
     }
   }
 
-  SwaggerResponse getSuccessedResponse(List<SwaggerResponse> responses) {
-    return responses.firstWhere(
+  SwaggerResponse? getSuccessedResponse(List<SwaggerResponse> responses) {
+    return responses.firstWhereOrNull(
       (SwaggerResponse response) =>
           successDescriptions.contains(response.description) ||
           successResponseCodes.contains(response.code),
@@ -764,6 +729,11 @@ abstract class $className extends ChopperService''';
     }
 
     final neededResponse = getSuccessedResponse(responses);
+
+    if(neededResponse == null)
+    {
+      return '';
+    }
 
     if (neededResponse.schema?.type == _kObject &&
         neededResponse.schema?.properties.isNotEmpty == true) {
