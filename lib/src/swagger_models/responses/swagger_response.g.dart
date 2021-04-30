@@ -8,7 +8,6 @@ part of 'swagger_response.dart';
 
 SwaggerResponse _$SwaggerResponseFromJson(Map<String, dynamic> json) {
   return SwaggerResponse(
-    code: json['code'] as String? ?? '',
     description: json['description'] as String? ?? '',
     type: json['type'] as String? ?? '',
     schema: json['schema'] == null
@@ -28,7 +27,6 @@ SwaggerResponse _$SwaggerResponseFromJson(Map<String, dynamic> json) {
 
 Map<String, dynamic> _$SwaggerResponseToJson(SwaggerResponse instance) =>
     <String, dynamic>{
-      'code': instance.code,
       'ref': instance.ref,
       'description': instance.description,
       'type': instance.type,

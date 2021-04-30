@@ -7,7 +7,6 @@ part 'swagger_response.g.dart';
 @JsonSerializable()
 class SwaggerResponse {
   SwaggerResponse({
-    this.code = '',
     this.description = '',
     this.type = '',
     this.schema,
@@ -15,9 +14,6 @@ class SwaggerResponse {
     this.content = const [],
     this.ref = '',
   });
-
-  @JsonKey(name: 'code', defaultValue: '')
-  String code;
 
   @JsonKey(name: 'ref', defaultValue: '')
   String ref;

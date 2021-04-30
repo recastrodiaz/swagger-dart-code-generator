@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:code_builder/code_builder.dart';
+import 'package:dart_style/dart_style.dart';
 import 'package:swagger_dart_code_generator/src/code_generators/swagger_enums_generator.dart';
 import 'package:swagger_dart_code_generator/src/code_generators/swagger_requests_generator.dart';
 import 'package:swagger_dart_code_generator/src/code_generators/v3/swagger_models_generator_v3.dart';
@@ -36,9 +37,6 @@ class SwaggerRequestsGeneratorV3 extends SwaggerRequestsGenerator {
 
     final allEnumNames = SwaggerModelsGeneratorV3().getAllEnumNames(code);
 
-    final dynamicResponses =
-        SwaggerRequestsGenerator.getAllDynamicResponses(code);
-
     final service = generateService(
         swaggerRoot,
         code,
@@ -47,9 +45,10 @@ class SwaggerRequestsGeneratorV3 extends SwaggerRequestsGenerator {
         options,
         schemas != null && schemas.keys.isNotEmpty,
         allEnumNames,
-        dynamicResponses,
         SwaggerModelsGenerator.generateBasicTypesMapFromSchemas(schemas ?? {}));
 
-    return service.accept(DartEmitter()).toString();
+    final tt = service.accept(DartEmitter()).toString();
+
+    return DartFormatter().format(tt);
   }
 }

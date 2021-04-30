@@ -1,7 +1,4 @@
-import 'dart:convert';
-
 import 'package:code_builder/code_builder.dart';
-import 'package:dart_style/dart_style.dart';
 import 'package:swagger_dart_code_generator/src/models/generator_options.dart';
 import 'package:swagger_dart_code_generator/src/code_generators/swagger_models_generator.dart';
 import 'package:swagger_dart_code_generator/src/extensions/string_extension.dart';
@@ -14,33 +11,11 @@ import 'package:recase/recase.dart';
 import 'package:swagger_dart_code_generator/src/exception_words.dart';
 import 'package:collection/collection.dart';
 
+import 'constants.dart';
+
 abstract class SwaggerRequestsGenerator {
   static const String defaultBodyParameter = 'Object';
   static const String requestTypeOptions = 'options';
-  static final List<String> successResponseCodes = [
-    '200',
-    '201',
-  ];
-  static final List<String> successDescriptions = [
-    'Success',
-    'OK',
-    'default response'
-  ];
-
-  final _kBasicTypesMap = const <String, String>{
-    'integer': 'int',
-    'int': 'int',
-    'boolean': 'bool',
-    'bool': 'bool',
-    'string': 'String',
-    'file': 'List<String>',
-    'number': 'num',
-    'object': 'Object',
-  };
-
-  static const _kObject = 'object';
-  static const _kHeader = 'header';
-  static const _kArray = 'array';
 
   String generate(
       String code, String className, String fileName, GeneratorOptions options);
@@ -65,7 +40,6 @@ $allMethodsContent
     GeneratorOptions options,
     bool hasModels,
     List<String> allEnumNames,
-    List<String> dynamicResponses,
     Map<String, String> basicTypesMap,
   ) {
     final allMethodsContent = _getAllMethodsContent(
@@ -77,37 +51,14 @@ $allMethodsContent
     return Class(
       (c) => c
         ..methods.addAll(allMethodsContent)
-        ..name = 'className',
+        ..extend = Reference('ChopperService')
+        ..docs.addAll([
+          'azazazazazazazazaza'
+        ])
+        ..annotations.add(refer('ChopperApi').call([]))
+        ..abstract = true
+        ..name = className,
     );
-  }
-
-  static List<String> getAllDynamicResponses(String dartCode) {
-    final dynamic map = jsonDecode(dartCode);
-
-    final components = map['components'] as Map<String, dynamic>?;
-    final responses = components == null
-        ? null
-        : components['responses'] as Map<String, dynamic>?;
-
-    if (responses == null) {
-      return [];
-    }
-
-    var results = <String>[];
-
-    responses.keys.forEach((key) {
-      final response = responses[key] as Map<String, dynamic>?;
-
-      final content = response == null
-          ? null
-          : response['content'] as Map<String, dynamic>?;
-
-      if (content != null && content.entries.length > 1) {
-        results.add(key.capitalize);
-      }
-    });
-
-    return results;
   }
 
   List<Method> _getAllMethodsContent({
@@ -138,7 +89,7 @@ $allMethodsContent
         );
 
         final returnTypeName = _getReturnTypeName(
-          responses: swaggerRequest.responses.values.toList(),
+          responses: swaggerRequest.responses,
           path: path,
           methodName: methodName,
           overridenResponses: options.responseOverrideValueMap
@@ -146,14 +97,24 @@ $allMethodsContent
               .map((key, value) => MapEntry(value.url, value)),
         );
 
+        final returns = returnTypeName.isEmpty
+            ? 'Future<chopper.Response>'
+            : 'Future<chopper.Response<$returnTypeName>>';
+
         methods.add(Method((m) => m
-          ..requiredParameters.addAll(parameters)
+          ..optionalParameters.addAll(parameters)
           ..name = methodName
-          ..returns = Reference(returnTypeName)));
+          ..annotations.add(_getMethodAnnotation(requestType, path))
+          ..returns = Reference(returns)));
       });
     });
 
     return methods;
+  }
+
+  Expression _getMethodAnnotation(String requestType, String path) {
+    return refer(requestType.pascalCase)
+        .call([], {'path': literalString(path)});
   }
 
   String getParameterCommentsForMethod(
@@ -173,7 +134,7 @@ $allMethodsContent
       String parameterDescription,
       String inParameter,
       GeneratorOptions options) {
-    if (inParameter == _kHeader && options.ignoreHeaders) {
+    if (inParameter == kHeader && options.ignoreHeaders) {
       return '';
     }
     if (parameterDescription.isNotEmpty) {
@@ -202,49 +163,12 @@ $allMethodsContent
     return result;
   }
 
-  String generatePublicMethod(
-      String methodName,
-      String returnTypeString,
-      String parametersPart,
-      String requestType,
-      String requestPath,
-      bool ignoreHeaders,
-      List<SwaggerRequestParameter> parameters,
-      List<String> allEnumNames) {
-    final filteredParameters = parameters
-        .where((parameter) =>
-            ignoreHeaders ? parameter.inParameter != _kHeader : true)
-        .toList();
-
-    final enumParametersNames = parameters
-        .where((parameter) => (parameter.items?.enumValues.isNotEmpty == true ||
-            parameter.item?.enumValues.isNotEmpty == true ||
-            parameter.schema?.enumValues.isNotEmpty == true ||
-            allEnumNames.contains(
-                'enums.${parameter.ref.isNotEmpty ? parameter.ref.split("/").last.pascalCase : ""}')))
-        .map((e) => e.name)
-        .toList();
-
-    final newParametersPart = parametersPart
-        .replaceAll(RegExp(r'@\w+\(\)'), '')
-        .replaceAll(RegExp(r"@\w+\(\'\w+\'\)"), '')
-        .trim();
-
-    final result =
-        '''\tFuture<Response$returnTypeString> ${abbreviationToCamelCase(methodName.camelCase)}($newParametersPart){
-          return _${methodName.camelCase}(${filteredParameters.map((e) => "${validateParameterName(e.name)} : ${enumParametersNames.contains(e.name) ? getEnumParameter(requestPath, requestType, e.name, filteredParameters, e.ref) : validateParameterName(e.name)}").join(', ')});
-          }'''
-            .replaceAll('@required', '');
-
-    return result;
-  }
-
   String getEnumParameter(String requestPath, String requestType,
       String parameterName, List<SwaggerRequestParameter> parameters,
       [String ref = '']) {
     final enumListParametersNames = parameters
         .where((parameter) =>
-            parameter.type == _kArray &&
+            parameter.type == kArray &&
             (parameter.items?.enumValues.isNotEmpty == true ||
                 parameter.item?.enumValues.isNotEmpty == true ||
                 parameter.schema?.enumValues.isNotEmpty == true))
@@ -281,77 +205,6 @@ $allMethodsContent
     }
 
     return name.join();
-  }
-
-  String getMethodContent({
-    required String summary,
-    required String typeRequest,
-    required String methodName,
-    required String parametersContent,
-    required String parametersComments,
-    required String requestPath,
-    required bool hasFormData,
-    required String returnType,
-    required bool hasEnums,
-    required String enumInBodyName,
-    required bool ignoreHeaders,
-    required List<SwaggerRequestParameter> parameters,
-    required List<String> allEnumNames,
-  }) {
-    var typeReq = typeRequest.capitalize + "(path: '$requestPath')";
-    if (hasFormData) {
-      typeReq +=
-          '\n  @FactoryConverter(request: FormUrlEncodedConverter.requestFactory)';
-    }
-
-    if (returnType.isNotEmpty && returnType != 'num') {
-      returnType = returnType.pascalCase;
-    }
-
-    final returnTypeString = returnType.isNotEmpty ? '<$returnType>' : '';
-    var parametersPart =
-        parametersContent.isEmpty ? '' : '{$parametersContent}';
-
-    if (summary.isNotEmpty) {
-      summary = summary.replaceAll(RegExp(r'\n|\r|\t'), ' ');
-    }
-
-    methodName = abbreviationToCamelCase(methodName.camelCase);
-    var publicMethod = '';
-
-    if (hasEnums) {
-      publicMethod = generatePublicMethod(
-              methodName,
-              returnTypeString,
-              parametersPart,
-              typeRequest,
-              requestPath,
-              ignoreHeaders,
-              parameters,
-              allEnumNames)
-          .trim();
-
-      allEnumNames.forEach((element) {
-        parametersPart = parametersPart.replaceFirst('$element? ', 'String? ');
-        parametersPart = parametersPart.replaceFirst('$element>?', 'String?>?');
-      });
-
-      parametersPart = parametersPart
-          .replaceAll('enums.', '')
-          .replaceAll('List<enums.', 'List<');
-
-      methodName = '_$methodName';
-    }
-
-    final generatedMethod = """
-\t///$summary  ${parametersComments.isNotEmpty ? """\n$parametersComments""" : ''}
-\t$publicMethod
-
-\t@$typeReq
-\tFuture<chopper.Response$returnTypeString> $methodName($parametersPart);
-""";
-
-    return generatedMethod;
   }
 
   String validateParameterType(String parameterName) {
@@ -394,7 +247,7 @@ $allMethodsContent
         return 'List<int>';
       case 'number':
         return 'num';
-      case _kObject:
+      case kObject:
         return 'Object';
       default:
         return validateParameterType(parameter);
@@ -420,7 +273,7 @@ $allMethodsContent
         parameterType = 'enums.$parameterType';
       }
 
-      if (parameter.type == _kArray) {
+      if (parameter.type == kArray) {
         parameterType = 'List<$parameterType>';
       }
     } else if (parameter.schema?.ref.isNotEmpty ?? false) {
@@ -455,34 +308,6 @@ $allMethodsContent
     return "@${parameter.inParameter.capitalize}('${parameter.name}') ${parameter.isRequired ? "@required" : ""} $parameterType? ${validateParameterName(parameter.name)}";
   }
 
-  String getParameterContent(
-      {required SwaggerRequestParameter parameter,
-      required bool ignoreHeaders,
-      required String requestType,
-      required String path,
-      required List<String> allEnumNames,
-      required bool useRequiredAttribute}) {
-    final parameterType = validateParameterType(parameter.name);
-    switch (parameter.inParameter) {
-      case 'body':
-        return getBodyParameter(parameter, path, requestType, allEnumNames);
-      case 'formData':
-        final isEnum = parameter.schema?.enumValues.isNotEmpty ?? false;
-
-        return "@Field('${parameter.name}') ${parameter.isRequired ? "@required" : ""} ${isEnum ? 'enums.$parameterType?' : getParameterTypeName(parameter.type)}? ${validateParameterName(parameter.name)}";
-      case 'header':
-        final needRequiredAttribute =
-            parameter.isRequired && useRequiredAttribute;
-        return ignoreHeaders
-            ? ''
-            : "@${parameter.inParameter.capitalize}('${parameter.name}') ${needRequiredAttribute ? "required" : ""} String? ${validateParameterName(parameter.name)}";
-      case 'cookie':
-        return '';
-      default:
-        return getDefaultParameter(parameter, path, requestType);
-    }
-  }
-
   String getChopperClientContent(String fileName, String host, String basePath,
       GeneratorOptions options, bool hadModels) {
     final baseUrlString = options.withBaseUrl
@@ -511,49 +336,36 @@ $allMethodsContent
     return generatedChopperClient;
   }
 
-  String getRequestClassContent(String host, String className, String fileName,
-      GeneratorOptions options) {
-    final classWithoutChopper = '''
-@ChopperApi()
-abstract class $className extends ChopperService''';
-
-    return classWithoutChopper;
-  }
-
   Expression _getParameterAnnotation(SwaggerRequestParameter parameter) {
-    String annotation;
     switch (parameter.inParameter) {
-      case 'body':
-        annotation = 'Body';
-        break;
       case 'formData':
-        annotation = 'Field';
-        break;
-      case _kHeader:
-        annotation = 'Header';
-        break;
+        return refer('Field').call([]);
+      case 'path':
+        return refer(parameter.inParameter)
+            .call([literalString(parameter.name)]);
       default:
-        annotation = parameter.inParameter.pascalCase;
+        return refer(parameter.inParameter.pascalCase).call([]);
     }
-
-    return refer(annotation).call([literalString(parameter.name)]);
   }
 
   String _getParameterTypeFromRef(String ref) {
     return ref.split('/').last.pascalCase;
   }
 
-  String _getEnumParameterTypeName(
-      {required String parameterName,
-      required String path,
-      required String requestType}) {
-    return 'enums.${path.split('/').map((e) => e.pascalCase).join()}\$${requestType.pascalCase}\$${parameterName.pascalCase}';
+  String _getEnumParameterTypeName({
+    required String parameterName,
+    required String path,
+    required String requestType,
+  }) {
+    final pathString = path.split('/').map((e) => e.pascalCase).join();
+    return 'enums.$pathString\$${requestType.pascalCase}\$${parameterName.pascalCase}';
   }
 
-  String _getParameterTypeName(
-      {required SwaggerRequestParameter parameter,
-      required String path,
-      required String requestType}) {
+  String _getParameterTypeName({
+    required SwaggerRequestParameter parameter,
+    required String path,
+    required String requestType,
+  }) {
     if (parameter.items?.enumValues.isNotEmpty == true ||
         parameter.schema?.enumValues.isNotEmpty == true) {
       return _getEnumParameterTypeName(
@@ -571,7 +383,7 @@ abstract class $className extends ChopperService''';
   }
 
   String _mapParameterName(String name) {
-    return _kBasicTypesMap[name] ?? name.pascalCase;
+    return kBasicTypesMap[name] ?? name.pascalCase;
   }
 
   List<Parameter> _getAllParameters({
@@ -582,12 +394,14 @@ abstract class $className extends ChopperService''';
   }) {
     final result = listParameters
         .where((swaggerParameter) =>
-            ignoreHeaders ? swaggerParameter.inParameter != _kHeader : true)
+            ignoreHeaders ? swaggerParameter.inParameter != kHeader : true)
         .where((swaggerParameter) => swaggerParameter.inParameter.isNotEmpty)
         .map(
           (swaggerParameter) => Parameter(
             (p) => p
               ..name = swaggerParameter.name
+              ..named = true
+              ..required = true
               ..type = Reference(_getParameterTypeName(
                 parameter: swaggerParameter,
                 path: path,
@@ -602,18 +416,6 @@ abstract class $className extends ChopperService''';
         .toList();
 
     return result;
-
-    //return listParameters;
-    // .map((SwaggerRequestParameter parameter) => getParameterContent(
-    //       parameter: parameter,
-    //       ignoreHeaders: ignoreHeaders,
-    //       path: path,
-    //       allEnumNames: allEnumNames,
-    //       requestType: requestType,
-    //       useRequiredAttribute: useRequiredAttribute,
-    //     ))
-    // .where((String element) => element.isNotEmpty)
-    // .join(', ');
   }
 
   String _getRequestMethodName({
@@ -629,16 +431,20 @@ abstract class $className extends ChopperService''';
     }
   }
 
-  SwaggerResponse? getSuccessedResponse(List<SwaggerResponse> responses) {
-    return responses.firstWhereOrNull(
-      (SwaggerResponse response) =>
-          successDescriptions.contains(response.description) ||
-          successResponseCodes.contains(response.code),
-    );
+  SwaggerResponse? getSuccessedResponse(
+      Map<String, SwaggerResponse> responses) {
+    return responses.entries
+        .firstWhereOrNull((responseEntry) =>
+            successResponseCodes.contains(responseEntry.key) ||
+            successDescriptions.contains(responseEntry.value.description))
+        ?.value;
   }
 
-  String getResponseModelName(String url, String methodName) {
-    final urlString = url.split('/').map((e) => e.pascalCase).join();
+  String _getResponseModelName({
+    required String path,
+    required String methodName,
+  }) {
+    final urlString = path.split('/').map((e) => e.pascalCase).join();
     final methodNamePart = methodName.pascalCase;
 
     return '$urlString$methodNamePart\$Response';
@@ -650,11 +456,15 @@ abstract class $className extends ChopperService''';
       return null;
     }
 
-    if (responseType == _kArray) {
+    if (responseType == kArray) {
       final itemsOriginalRef = swaggerResponse.schema?.items?.originalRef;
       final itemsType = swaggerResponse.schema?.items?.type;
-      final arrayType = itemsOriginalRef ?? itemsType ?? _kObject;
-      final mappedArrayType = _kBasicTypesMap[arrayType] ?? arrayType;
+      final arrayType = itemsOriginalRef ?? itemsType ?? kObject;
+      final mappedArrayType = kBasicTypesMap[arrayType] ?? arrayType;
+
+      if (mappedArrayType.isEmpty) {
+        return null;
+      }
 
       return 'List<$mappedArrayType>';
     }
@@ -694,32 +504,32 @@ abstract class $className extends ChopperService''';
       final ref = swaggerResponse.content.first.ref;
       if (ref.isNotEmpty) {
         final type = _getRef(ref);
-        return _kBasicTypesMap[type] ?? type;
+        return kBasicTypesMap[type] ?? type;
       }
 
       final responseType = swaggerResponse.content.first.responseType;
 
       if (responseType.isNotEmpty) {
-        if (responseType == _kArray) {
+        if (responseType == kArray) {
           final originalRef = swaggerResponse.schema?.items?.originalRef ?? '';
 
           if (originalRef.isNotEmpty) {
-            return 'List<${_kBasicTypesMap[originalRef]}>';
+            return 'List<${kBasicTypesMap[originalRef]}>';
           }
 
           final ref = swaggerResponse.content.firstOrNull?.items?.ref ?? '';
           if (ref.isNotEmpty) {
-            return 'List<${_kBasicTypesMap[ref]}>';
+            return 'List<${kBasicTypesMap[ref]}>';
           }
         }
 
-        return _kBasicTypesMap[responseType] ?? responseType;
+        return kBasicTypesMap[responseType] ?? responseType;
       }
     }
   }
 
   String _getReturnTypeName({
-    required List<SwaggerResponse> responses,
+    required Map<String, SwaggerResponse> responses,
     required Map<String, ResponseOverrideValueMap> overridenResponses,
     required String path,
     required String methodName,
@@ -730,37 +540,21 @@ abstract class $className extends ChopperService''';
 
     final neededResponse = getSuccessedResponse(responses);
 
-    if(neededResponse == null)
-    {
+    if (neededResponse == null) {
       return '';
     }
 
-    if (neededResponse.schema?.type == _kObject &&
+    if (neededResponse.schema?.type == kObject &&
         neededResponse.schema?.properties.isNotEmpty == true) {
-      return getResponseModelName(path, methodName);
+      return _getResponseModelName(path: path, methodName: methodName);
     }
 
-    var type = _getReturnTypeFromType(neededResponse);
-    if (type != null) {
-      return type;
-    }
+    final type = _getReturnTypeFromType(neededResponse) ??
+        _getReturnTypeFromSchema(neededResponse) ??
+        _getReturnTypeFromOriginalRef(neededResponse) ??
+        _getReturnTypeFromContent(neededResponse);
 
-    type = _getReturnTypeFromSchema(neededResponse);
-    if (type != null) {
-      return type;
-    }
-
-    type = _getReturnTypeFromOriginalRef(neededResponse);
-    if (type != null) {
-      return type;
-    }
-
-    type = _getReturnTypeFromContent(neededResponse);
-    if (type != null) {
-      return type;
-    }
-
-    return '';
+    return type ?? '';
   }
 
   String getMapName(

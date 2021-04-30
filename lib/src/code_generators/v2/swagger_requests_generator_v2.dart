@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:code_builder/code_builder.dart';
+import 'package:dart_style/dart_style.dart';
 import 'package:swagger_dart_code_generator/src/code_generators/swagger_enums_generator.dart';
 import 'package:swagger_dart_code_generator/src/code_generators/swagger_models_generator.dart';
 import 'package:swagger_dart_code_generator/src/code_generators/swagger_requests_generator.dart';
@@ -40,9 +41,8 @@ class SwaggerRequestsGeneratorV2 extends SwaggerRequestsGenerator {
         options,
         definitions.isNotEmpty && definitions.keys.isNotEmpty,
         allEnumNames,
-        [],
         SwaggerModelsGenerator.generateBasicTypesMapFromSchemas(definitions));
 
-    return service.accept(DartEmitter()).toString();
+    return DartFormatter().format(service.accept(DartEmitter()).toString());
   }
 }

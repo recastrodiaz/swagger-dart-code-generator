@@ -16,8 +16,7 @@ dependencies:
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  swagger_dart_code_generator:
-    path: ../
+  swagger_dart_code_generator: 2.0.0-nullsafety.3+3
   chopper_generator: ^4.0.0-nullsafety.1
   build_runner: 1.12.2
   json_annotation: 4.0.1
