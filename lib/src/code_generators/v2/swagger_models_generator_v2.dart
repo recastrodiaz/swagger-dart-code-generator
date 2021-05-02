@@ -4,13 +4,17 @@ import 'package:swagger_dart_code_generator/src/code_generators/swagger_models_g
 import 'package:swagger_dart_code_generator/src/code_generators/v2/swagger_enums_generator_v2.dart';
 import 'package:swagger_dart_code_generator/src/extensions/string_extension.dart';
 import 'package:swagger_dart_code_generator/src/models/generator_options.dart';
+import 'package:swagger_dart_code_generator/src/swagger_models/responses/swagger_schema.dart';
+import 'package:swagger_dart_code_generator/src/swagger_models/swagger_root.dart';
 
 class SwaggerModelsGeneratorV2 extends SwaggerModelsGenerator {
   @override
   String generate(String dartCode, String fileName, GeneratorOptions options) {
-    final dynamic map = jsonDecode(dartCode);
-    final definitions = map['definitions'] as Map<String, dynamic>?;
-    return generateBase(dartCode, fileName, options, definitions ?? {}, true);
+
+    final map = jsonDecode(dartCode) as Map<String, dynamic>;
+    final root = SwaggerRoot.fromJson(map);
+    
+    return generateBase(root, fileName, options, root.definitions);
   }
 
   @override
@@ -104,11 +108,6 @@ class SwaggerModelsGeneratorV2 extends SwaggerModelsGenerator {
     }).toList();
 
     return resultsWithPrefix;
-  }
-
-  @override
-  Map<String, dynamic> getModelProperties(Map<String, dynamic> modelMap) {
-    return modelMap['properties'] as Map<String, dynamic>? ?? {};
   }
 
   @override

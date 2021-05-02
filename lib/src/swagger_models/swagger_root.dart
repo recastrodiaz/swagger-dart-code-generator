@@ -1,5 +1,6 @@
 import 'package:swagger_dart_code_generator/src/swagger_models/requests/swagger_request.dart';
 import 'package:swagger_dart_code_generator/src/swagger_models/requests/swagger_request_parameter.dart';
+import 'package:swagger_dart_code_generator/src/swagger_models/responses/swagger_schema.dart';
 import 'package:swagger_dart_code_generator/src/swagger_models/swagger_components.dart';
 import 'package:swagger_dart_code_generator/src/swagger_models/swagger_info.dart';
 import 'package:swagger_dart_code_generator/src/swagger_models/swagger_path.dart';
@@ -10,15 +11,17 @@ part 'swagger_root.g.dart';
 
 @JsonSerializable()
 class SwaggerRoot {
-  SwaggerRoot(
-      {this.basePath = '',
-      this.components,
-      this.info,
-      this.host = '',
-      this.paths = const {},
-      this.tags = const [],
-      this.schemes = const [],
-      this.parameters = const []});
+  SwaggerRoot({
+    required this.basePath,
+    required this.components,
+    required this.info,
+    required this.host,
+    required this.paths,
+    required this.tags,
+    required this.schemes,
+    required this.parameters,
+    required this.definitions,
+  });
 
   @JsonKey(name: 'info')
   SwaggerInfo? info;
@@ -37,6 +40,9 @@ class SwaggerRoot {
 
   @JsonKey(name: 'paths', defaultValue: {}, fromJson: _mapPaths)
   Map<String, SwaggerPath> paths;
+
+  @JsonKey(name: 'definitions', defaultValue: {})
+  Map<String, SwaggerSchema> definitions;
 
   @JsonKey(name: 'parameters', defaultValue: [])
   List<SwaggerRequestParameter> parameters;

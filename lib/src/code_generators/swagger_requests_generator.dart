@@ -257,7 +257,7 @@ class SwaggerRequestsGenerator {
     }
   }
 
-  SwaggerResponse? _getSuccessedResponse({
+  static SwaggerResponse? getSuccessedResponse({
     required Map<String, SwaggerResponse> responses,
   }) {
     return responses.entries
@@ -361,7 +361,7 @@ class SwaggerRequestsGenerator {
       return overridenResponses[path]!.overriddenValue;
     }
 
-    final neededResponse = _getSuccessedResponse(
+    final neededResponse = getSuccessedResponse(
       responses: responses,
     );
 

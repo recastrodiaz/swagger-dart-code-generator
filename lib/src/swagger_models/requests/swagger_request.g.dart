@@ -66,7 +66,7 @@ RequestContent _$RequestContentFromJson(Map<String, dynamic> json) {
   return RequestContent(
     items: json['items'] == null
         ? null
-        : ItemSchema.fromJson(json['items'] as Map<String, dynamic>),
+        : SwaggerSchema.fromJson(json['items'] as Map<String, dynamic>),
     ref: json['ref'] as String? ?? '',
     responseType: json['responseType'] as String? ?? '',
     type: json['type'] as String? ?? '',

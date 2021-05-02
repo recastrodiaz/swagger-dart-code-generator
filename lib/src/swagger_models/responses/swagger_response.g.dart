@@ -12,7 +12,7 @@ SwaggerResponse _$SwaggerResponseFromJson(Map<String, dynamic> json) {
     type: json['type'] as String? ?? '',
     schema: json['schema'] == null
         ? null
-        : ResponseSchema.fromJson(json['schema'] as Map<String, dynamic>),
+        : SwaggerSchema.fromJson(json['schema'] as Map<String, dynamic>),
     enumValue: (json['enumValue'] as List<dynamic>?)
             ?.map((e) => e as String)
             .toList() ??
@@ -39,7 +39,7 @@ Content _$ContentFromJson(Map<String, dynamic> json) {
   return Content(
     items: json['items'] == null
         ? null
-        : ItemSchema.fromJson(json['items'] as Map<String, dynamic>),
+        : SwaggerSchema.fromJson(json['items'] as Map<String, dynamic>),
     ref: json['ref'] as String? ?? '',
     responseType: json['responseType'] as String? ?? '',
     type: json['type'] as String? ?? '',

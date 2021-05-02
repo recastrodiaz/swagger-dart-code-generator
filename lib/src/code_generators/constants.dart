@@ -3,8 +3,21 @@ const List<String> successResponseCodes = [
   '201',
 ];
 
+const List<String> kKeyClasses = ['Response', 'Request'];
+const kBasicTypes = [
+  'string',
+  'int',
+  'integer',
+  'double',
+  'float',
+  'bool',
+  'boolean',
+  'number',
+];
+
 const kChopperService = 'ChopperService';
 const kChopperApi = 'ChopperApi';
+const kResponse = 'Response';
 
 const kPath = 'path';
 
@@ -27,6 +40,7 @@ const kBasicTypesMap = <String, String>{
 const kObject = 'object';
 const kHeader = 'header';
 const kArray = 'array';
+const kEnum = 'enum';
 
 const kServiceHeader = '''
 // **************************************************************************

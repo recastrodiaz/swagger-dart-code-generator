@@ -30,6 +30,11 @@ SwaggerRoot _$SwaggerRootFromJson(Map<String, dynamic> json) {
                 SwaggerRequestParameter.fromJson(e as Map<String, dynamic>))
             .toList() ??
         [],
+    definitions: (json['definitions'] as Map<String, dynamic>?)?.map(
+          (k, e) =>
+              MapEntry(k, SwaggerSchema.fromJson(e as Map<String, dynamic>)),
+        ) ??
+        {},
   );
 }
 
@@ -41,6 +46,7 @@ Map<String, dynamic> _$SwaggerRootToJson(SwaggerRoot instance) =>
       'tags': instance.tags,
       'schemes': instance.schemes,
       'paths': instance.paths,
+      'definitions': instance.definitions,
       'parameters': instance.parameters,
       'components': instance.components,
     };

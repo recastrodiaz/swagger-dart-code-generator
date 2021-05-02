@@ -1,5 +1,5 @@
 import 'package:json_annotation/json_annotation.dart';
-import 'package:swagger_dart_code_generator/src/swagger_models/responses/item_schema.dart';
+import 'package:swagger_dart_code_generator/src/swagger_models/responses/swagger_schema.dart';
 
 import '../responses/swagger_response.dart';
 import 'swagger_request_parameter.dart';
@@ -84,7 +84,7 @@ class RequestContent {
   final String type;
 
   @JsonKey(name: 'items')
-  final ItemSchema? items;
+  final SwaggerSchema? items;
 
   @JsonKey(name: 'ref', defaultValue: '')
   final String ref;

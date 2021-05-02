@@ -1,101 +1,73 @@
-import 'dart:convert';
-
+import 'package:swagger_dart_code_generator/src/code_generators/constants.dart';
+import 'package:swagger_dart_code_generator/src/code_generators/swagger_requests_generator.dart';
 import 'package:swagger_dart_code_generator/src/models/generator_options.dart';
 import 'package:recase/recase.dart';
 import 'package:swagger_dart_code_generator/src/code_generators/v2/swagger_enums_generator_v2.dart';
 import 'package:swagger_dart_code_generator/src/extensions/string_extension.dart';
 import 'package:swagger_dart_code_generator/src/exception_words.dart';
+import 'package:swagger_dart_code_generator/src/swagger_models/responses/swagger_schema.dart';
+import 'package:swagger_dart_code_generator/src/swagger_models/swagger_path.dart';
+import 'package:swagger_dart_code_generator/src/swagger_models/swagger_root.dart';
 
 abstract class SwaggerModelsGenerator {
-  static const List<String> keyClasses = ['Response', 'Request'];
-  static const basicTypes = [
-    'string',
-    'int',
-    'integer',
-    'double',
-    'float',
-    'bool',
-    'boolean',
-    'number',
-  ];
-
   String generate(String dartCode, String fileName, GeneratorOptions options);
   String generateResponses(
       String dartCode, String fileName, GeneratorOptions options);
 
   String generateRequestBodies(
       String dartCode, String fileName, GeneratorOptions options);
-  Map<String, dynamic> getModelProperties(Map<String, dynamic> modelMap);
-  String getExtendsString(Map<String, dynamic> map);
-  List<String> getAllEnumNames(String swaggerFile);
-  List<String> getAllListEnumNames(String swaggerFile);
 
-  String generateModelClassContent(
-      String className,
-      Map<String, dynamic> map,
-      Map<String, dynamic> schemas,
-      List<DefaultValueMap> defaultValues,
-      bool useDefaultNullForLists,
-      List<String> allEnumNames,
-      List<String> allEnumListNames,
-      GeneratorOptions options) {
-    if (map['enum'] != null) {
+  bool _shouldGenerateModel(SwaggerSchema schema) {
+    if (schema.enumValue.isNotEmpty ||
+        kBasicTypes.contains(schema.type.toLowerCase()) ||
+        schema.items?.type == kEnum ||
+        schema.ref.isNotEmpty) {
+      return false;
+    }
+
+    return true;
+  }
+
+  String _generateModelClassContent({
+    required String className,
+    required SwaggerSchema schema,
+    required Map<String, SwaggerSchema> schemas,
+    required GeneratorOptions options,
+  }) {
+    if (_shouldGenerateModel(schema)) {
       return '';
     }
 
-    if (basicTypes.contains(map['type'].toString().toLowerCase())) {
-      return '';
-    }
-
-    if (map['type'] == 'array' &&
-        map['items'] != null &&
-        map['items']['type'] == 'enum') {
-      return '';
-    }
-
-    if (map.containsKey('\$ref')) {
-      return '';
-    }
-
-    return generateModelClassString(
-      className,
-      map,
-      schemas,
-      defaultValues,
-      useDefaultNullForLists,
-      allEnumNames,
-      allEnumListNames,
-      options,
+    return _generateModelClassString(
+      className: className,
+      options: options,
+      schema: schema,
+      schemas: schemas,
     );
   }
 
-  static Map<String, dynamic> getClassesFromResponses(String dartCode) {
-    final swagger = jsonDecode(dartCode);
+  Map<String, SwaggerSchema> _getClassesFromResponses(
+      {required Map<String, SwaggerPath> paths}) {
+    final results = <String, SwaggerSchema>{};
 
-    final results = <String, dynamic>{};
-
-    final paths = swagger['paths'] as Map<String, dynamic>?;
-    if (paths == null) {
+    if (paths.isEmpty) {
       return results;
     }
 
     paths.forEach((path, pathValue) {
-      final requests = pathValue as Map<String, dynamic>;
+      pathValue.requests.forEach((requestType, requestValue) {
+        if (requestType == kRequestTypeOptions) {
+          return;
+        }
 
-      requests.removeWhere((key, value) => key == 'parameters');
+        final neededResponse = SwaggerRequestsGenerator.getSuccessedResponse(
+            responses: requestValue.responses);
 
-      requests.forEach((request, requestValue) {
-        final responses = requestValue['responses'] as Map<String, dynamic>;
-
-        final neededResponse = responses['200'];
-
-        if (neededResponse != null &&
-            neededResponse['schema'] != null &&
-            neededResponse['schema']['type'] == 'object' &&
-            neededResponse['schema']['properties'] != null) {
-          final pathText = path.split('/').map((e) => e.pascalCase).join();
-          final requestText = request.pascalCase;
-          results['$pathText$requestText\$Response'] = neededResponse['schema'];
+        if (neededResponse?.schema?.type == kObject &&
+            neededResponse?.schema?.properties.isNotEmpty == true) {
+          final modelKey =
+              getResponseModelTypeName(path: path, requestType: requestType);
+          results[modelKey] = neededResponse!.schema!;
         }
       });
     });
@@ -103,21 +75,26 @@ abstract class SwaggerModelsGenerator {
     return results;
   }
 
-  String generateBase(
-      String dartCode,
-      String fileName,
-      GeneratorOptions options,
-      Map<String, dynamic> classes,
-      bool generateFromJsonToJsonForRequests) {
-    final allEnumsNames = getAllEnumNames(dartCode);
-    final allEnumListNames = getAllListEnumNames(dartCode);
+  static String getResponseModelTypeName({
+    required String path,
+    required String requestType,
+  }) {
+    final pathText = path.split('/').map((e) => e.pascalCase).join();
+    final requestText = requestType.pascalCase;
 
-    final generatedEnumFromJsonToJson = generateFromJsonToJsonForRequests
-        ? genetateEnumFromJsonToJsonMethods(
-            allEnumsNames, options.enumsCaseSensitive)
-        : '';
+    return '$pathText$requestText\$$kResponse';
+  }
 
-    final classesFromResponses = getClassesFromResponses(dartCode);
+  String generateBase({
+    required SwaggerRoot root,
+    required String fileName,
+    required GeneratorOptions options,
+    required Map<String, SwaggerSchema> classes,
+  }) {
+    final generatedEnumFromJsonToJson =
+        genetateEnumFromJsonToJsonMethods([], options.enumsCaseSensitive);
+
+    final classesFromResponses = _getClassesFromResponses(paths: root.paths);
 
     classes.addAll(classesFromResponses);
 
@@ -130,25 +107,15 @@ abstract class SwaggerModelsGenerator {
         return '';
       }
 
-      return generateModelClassContent(
-        className.pascalCase,
-        classes[className] as Map<String, dynamic>,
-        classes,
-        options.defaultValuesMap,
-        options.useDefaultNullForLists,
-        allEnumsNames,
-        allEnumListNames,
-        options,
+      return _generateModelClassContent(
+        schema: classes[className]!,
+        className: className,
+        schemas: classes,
+        options: options,
       );
     }).join('\n');
 
     var results = '$generatedClasses\n$generatedEnumFromJsonToJson';
-
-    final listEnums = getAllListEnumNames(dartCode);
-
-    listEnums.forEach((listEnum) {
-      results = results.replaceAll(' $listEnum ', ' List<$listEnum> ');
-    });
 
     return results;
   }
@@ -169,7 +136,7 @@ abstract class SwaggerModelsGenerator {
         .map((String str) => str.capitalize)
         .join();
 
-    if (keyClasses.contains(result)) {
+    if (kKeyClasses.contains(result)) {
       return '$result\$';
     }
 
@@ -599,25 +566,22 @@ abstract class SwaggerModelsGenerator {
     }
   }
 
-  String generatePropertiesContent(
-      Map<String, dynamic> propertiesMap,
-      Map<String, dynamic> schemas,
-      String className,
-      List<DefaultValueMap> defaultValues,
-      bool useDefaultNullForLists,
-      List<String> allEnumNames,
-      List<String> allEnumListNames,
-      GeneratorOptions options) {
-    if (propertiesMap.isEmpty) {
+  String _generatePropertiesContent({
+    required Map<String, SwaggerSchema> properties,
+    required Map<String, SwaggerSchema> schemas,
+    required String className,
+    required GeneratorOptions options,
+  }) {
+    if (properties.isEmpty) {
       return '';
     }
 
     final results = <String>[];
 
-    for (var i = 0; i < propertiesMap.keys.length; i++) {
-      var propertyName = propertiesMap.keys.elementAt(i);
+    for (var i = 0; i < properties.keys.length; i++) {
+      var propertyName = properties.keys.elementAt(i);
       final propertyEntryMap =
-          propertiesMap[propertyName] as Map<String, dynamic>;
+          properties[propertyName] as Map<String, dynamic>;
       final propertyKey = propertyName;
 
       exceptionWords.forEach((String exceptionWord) {
@@ -626,7 +590,7 @@ abstract class SwaggerModelsGenerator {
         }
       });
 
-      final basicTypesMap = generateBasicTypesMapFromSchemas(schemas);
+      final basicTypesMap = _generateBasicTypesMapFromSchemas(schemas: schemas);
 
       if (propertyEntryMap.containsKey('type')) {
         results.add(generatePropertyContentByType(
@@ -669,20 +633,18 @@ abstract class SwaggerModelsGenerator {
     return results.join('\n');
   }
 
-  static Map<String, String> generateBasicTypesMapFromSchemas(
-      Map<String, dynamic> schemas) {
+  static Map<String, String> _generateBasicTypesMapFromSchemas({
+    required Map<String, SwaggerSchema> schemas,
+  }) {
     final result = <String, String>{};
     if (schemas.isEmpty) {
       return result;
     }
 
     schemas.forEach((key, value) {
-      if (basicTypes.contains(value['type'].toString().toLowerCase()) &&
-          value['enum'] == null) {
-        result.addAll({
-          key: _mapBasicTypeToDartType(
-              value['type'].toString(), value['format'].toString())
-        });
+      if (kBasicTypes.contains(value.type.toLowerCase()) &&
+          value.enumValue.isNotEmpty) {
+        result[key] = _mapBasicTypeToDartType(value.type, value.format);
       }
     });
 
@@ -771,68 +733,38 @@ List<enums.$neededName> ${neededName.camelCase}ListFromJson(
     ''';
   }
 
-  String generateConstructorPropertiesContent(
-    String className,
-    Map<String, dynamic> entityMap,
-    GeneratorOptions options,
-    List<DefaultValueMap> defaultValues,
-    List<String> allEnumNames,
-    List<String> allEnumListNames,
-  ) {
-    if (entityMap.isEmpty) {
+  String _generateConstructorPropertiesContent({
+    required String className,
+    required Map<String, SwaggerSchema> properties,
+    required GeneratorOptions options,
+  }) {
+    if (properties.isEmpty) {
       return '';
     }
 
     var results = '';
 
-    entityMap.forEach((key, value) {
+    properties.forEach((key, property) {
       final fieldName = SwaggerModelsGenerator.generateFieldName(key);
-
-      final hasDefaultValue = value['default'] != null ||
-          defaultValues.any((element) =>
-              element.typeName ==
-              _mapBasicTypeToDartType(value['type'].toString(), ''));
-
-      final isList = value['type'] == 'array' ||
-          allEnumListNames.contains('enums.${key.pascalCase}');
-
-      final type = value['\$ref']?.toString().split('/').last.pascalCase ?? key;
-
-      final isEnum = allEnumNames.contains('enums.${type.pascalCase}') ||
-          allEnumNames.contains('enums.${className + type.pascalCase}');
-
-      if ((isList && !options.useDefaultNullForLists) ||
-          hasDefaultValue ||
-          isEnum) {
-        results += '\t\trequired this.$fieldName,\n';
-      } else {
-        results += '\t\tthis.$fieldName,\n';
-      }
+      results += '\t\trequired this.$fieldName,\n';
     });
 
     return '{\n$results\n\t}';
   }
 
-  String generateModelClassString(
-      String className,
-      Map<String, dynamic> map,
-      Map<String, dynamic> schemas,
-      List<DefaultValueMap> defaultValues,
-      bool useDefaultNullForLists,
-      List<String> allEnumNames,
-      List<String> allEnumListNames,
-      GeneratorOptions options) {
-    final properties = getModelProperties(map);
+  String _generateModelClassString({
+    required String className,
+    required SwaggerSchema schema,
+    required Map<String, SwaggerSchema> schemas,
+    required GeneratorOptions options,
+  }) {
+    final properties = schema.properties;
 
-    var extendsString = options.useInheritance ? getExtendsString(map) : '';
-
-    final generatedConstructorProperties = generateConstructorPropertiesContent(
-      className,
-      properties,
-      options,
-      defaultValues,
-      allEnumNames,
-      allEnumListNames,
+    final generatedConstructorProperties =
+        _generateConstructorPropertiesContent(
+      className: className,
+      properties: properties,
+      options: options,
     );
 
     final generatedProperties = generatePropertiesContent(
@@ -841,8 +773,6 @@ List<enums.$neededName> ${neededName.camelCase}ListFromJson(
       className,
       defaultValues,
       useDefaultNullForLists,
-      allEnumNames,
-      allEnumListNames,
       options,
     );
 
