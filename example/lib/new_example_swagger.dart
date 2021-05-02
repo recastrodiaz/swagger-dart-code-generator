@@ -1,4 +1,16 @@
-abstract class OrderSerice extends ChopperService {@Post(path: '/pet') Future<Response<PetAddPet$Response>> addPet(@Body() required Pet body);
+import 'package:json_annotation/json_annotation.dart';
+import 'package:meta/meta.dart';
+import 'package:chopper/chopper.dart';
+import 'package:chopper/chopper.dart' as chopper;
+import 'example_swagger.enums.swagger.dart' as enums;
+export 'example_swagger.enums.swagger.dart';
+
+abstract class OrderSerice extends ChopperService {
+    
+    @Post(path: '/pet') Future<Response<PetAddPet$Response>>
+    addPet(@Body() required Pet body);
+
+
 @Put(path: '/pet') Future<Response> updatePet(@Body() required Pet body);
 @Get(path: '/pet/findByStatus') Future<Response<List<Pet>>> findPetsByStatus(@Query() required enums.PetFindByStatus$Get$Status status, @Query() required enums.PetFindByStatus$Get$Color color);
 @Get(path: '/pet/findByTags') Future<Response<List<Pet>>> findPetsByTags(@Query() required List<String> tags);

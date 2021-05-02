@@ -1,6 +1,7 @@
 import 'package:swagger_dart_code_generator/src/definitions.dart';
 import 'package:recase/recase.dart';
 import 'package:swagger_dart_code_generator/src/extensions/file_name_extensions.dart';
+import 'package:swagger_dart_code_generator/src/models/generator_options.dart';
 
 ///Generates index file content, converter and additional methods
 class SwaggerAdditionsGenerator {
@@ -176,5 +177,37 @@ class JsonSerializableConverter extends chopper.JsonConverter {
 
 final jsonDecoder = CustomJsonDecoder(${fileName.pascalCase}JsonDecoderMappings);
     ''';
+  }
+
+  static String getChopperClientContent(
+    String fileName,
+    String host,
+    String basePath,
+    GeneratorOptions options,
+  ) {
+    final baseUrlString = options.withBaseUrl
+        ? "baseUrl:  'https://$host$basePath'"
+        : '/*baseUrl: YOUR_BASE_URL*/';
+
+    final converterString =
+        options.withBaseUrl && options.withConverter
+            ? 'converter: JsonSerializableConverter(),'
+            : 'converter: chopper.JsonConverter(),';
+
+    final generatedChopperClient = '''
+  static $fileName create([ChopperClient? client]) {
+    if(client!=null){
+      return _\$$fileName(client);
+    }
+
+    final newClient = ChopperClient(
+      services: [_\$$fileName()],
+      $converterString
+      $baseUrlString);
+    return _\$$fileName(newClient);
+  }
+
+''';
+    return generatedChopperClient;
   }
 }

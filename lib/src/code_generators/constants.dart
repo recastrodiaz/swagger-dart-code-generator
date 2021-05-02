@@ -3,7 +3,15 @@ const List<String> successResponseCodes = [
   '201',
 ];
 
-const List<String> successDescriptions = ['Success', 'OK', 'default response'];
+const kChopperService = 'ChopperService';
+const kChopperApi = 'ChopperApi';
+
+const kPath = 'path';
+
+const kDefaultBodyParameter = 'Object';
+const kRequestTypeOptions = 'options';
+
+const successDescriptions = ['Success', 'OK', 'default response'];
 
 const kBasicTypesMap = <String, String>{
   'integer': 'int',
@@ -19,3 +27,9 @@ const kBasicTypesMap = <String, String>{
 const kObject = 'object';
 const kHeader = 'header';
 const kArray = 'array';
+
+const kServiceHeader = '''
+// **************************************************************************
+// SwaggerChopperGenerator
+// **************************************************************************
+  ''';
