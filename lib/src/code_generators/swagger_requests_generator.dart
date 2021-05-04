@@ -36,7 +36,9 @@ class SwaggerRequestsGenerator {
 
     final tt = service.accept(DartEmitter()).toString();
 
-    return DartFormatter(lineEnding: '\n').format(tt);
+    return tt;
+
+    //return DartFormatter(lineEnding: '\n').format(tt);
   }
 
   Class _generateService(
@@ -51,7 +53,7 @@ class SwaggerRequestsGenerator {
     );
 
     final chopperClient = SwaggerAdditionsGenerator.getChopperClientContent(
-      fileName,
+      className,
       swaggerRoot.host,
       swaggerRoot.basePath,
       options,
@@ -59,12 +61,28 @@ class SwaggerRequestsGenerator {
 
     return Class(
       (c) => c
-        ..methods.addAll(allMethodsContent)
+        ..methods.addAll([_generateCreateMethod(className, chopperClient), ...allMethodsContent])
         ..extend = Reference(kChopperService)
-        ..docs.addAll([chopperClient, kServiceHeader])
+        ..docs.add(kServiceHeader)
         ..annotations.add(refer(kChopperApi).call([]))
         ..abstract = true
         ..name = className,
+    );
+  }
+
+  Method _generateCreateMethod(String className, String body) {
+    return Method(
+      (m) => m
+        ..returns = Reference(className)
+        ..name = 'create'
+        ..optionalParameters.add(
+          Parameter(
+            (p) => p
+              ..named = false
+              ..type = Reference('ChopperClient?')
+              ..name = 'client',  
+          ),
+        )..body = Code(body),
     );
   }
 

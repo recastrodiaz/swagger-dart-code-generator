@@ -20,7 +20,7 @@ void main() {
 
       final root = SwaggerRoot.fromJson(tt);
 
-      final result2 = modelsGenerator.generate(aaa, 'fileName', GeneratorOptions(inputFolder: '', outputFolder: ''));
+      final result2 = modelsGenerator.generate(aaa, 'example_swagger', GeneratorOptions(inputFolder: '', outputFolder: ''));
 
       final result = generator.generate(
           code: aaa,

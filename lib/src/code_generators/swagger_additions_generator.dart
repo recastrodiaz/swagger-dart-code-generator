@@ -76,23 +76,23 @@ import 'package:json_annotation/json_annotation.dart';
 import 'package:meta/meta.dart';""");
 
     if (chopperImports.isNotEmpty) {
-      result.write(chopperImports);
+      result.writeln(chopperImports);
     }
     if (enumsImport.isNotEmpty) {
-      result.write(enumsImport);
+      result.writeln(enumsImport);
     }
 
     if (enumsExport.isNotEmpty) {
-      result.write(enumsExport);
+      result.writeln(enumsExport);
     }
 
-    result.write('\n\n');
+    result.writeln('\n\n');
 
     if (chopperPartImport.isNotEmpty) {
-      result.write(chopperPartImport);
+      result.writeln(chopperPartImport);
     }
     if (hasModels) {
-      result.write("part '$swaggerFileName.swagger.g.dart';");
+      result.writeln("part '$swaggerFileName.swagger.g.dart';");
     }
 
     return result.toString();
@@ -180,7 +180,7 @@ final jsonDecoder = CustomJsonDecoder(${fileName.pascalCase}JsonDecoderMappings)
   }
 
   static String getChopperClientContent(
-    String fileName,
+    String className,
     String host,
     String basePath,
     GeneratorOptions options,
@@ -194,20 +194,17 @@ final jsonDecoder = CustomJsonDecoder(${fileName.pascalCase}JsonDecoderMappings)
             ? 'converter: JsonSerializableConverter(),'
             : 'converter: chopper.JsonConverter(),';
 
-    final generatedChopperClient = '''
-  static $fileName create([ChopperClient? client]) {
+    final chopperClientBody = '''
     if(client!=null){
-      return _\$$fileName(client);
+      return _\$$className(client);
     }
 
     final newClient = ChopperClient(
-      services: [_\$$fileName()],
+      services: [_\$$className()],
       $converterString
       $baseUrlString);
-    return _\$$fileName(newClient);
-  }
-
+    return _\$$className(newClient);
 ''';
-    return generatedChopperClient;
+    return chopperClientBody;
   }
 }
