@@ -1,9 +1,7 @@
 import 'dart:convert';
 
 import 'package:code_builder/code_builder.dart';
-import 'package:dart_style/dart_style.dart';
 import 'package:swagger_dart_code_generator/src/code_generators/swagger_additions_generator.dart';
-import 'package:swagger_dart_code_generator/src/code_generators/swagger_enums_generator.dart';
 import 'package:swagger_dart_code_generator/src/models/generator_options.dart';
 import 'package:swagger_dart_code_generator/src/code_generators/swagger_models_generator.dart';
 import 'package:swagger_dart_code_generator/src/extensions/string_extension.dart';
@@ -122,8 +120,8 @@ class SwaggerRequestsGenerator {
         );
 
         final returns = returnTypeName.isEmpty
-            ? 'Future<chopper.Response>'
-            : 'Future<chopper.Response<$returnTypeName>>';
+            ? kFutureResponse
+            : returnTypeName.asFutureResponse();
 
         methods.add(Method((m) => m
           ..optionalParameters.addAll(parameters)
@@ -184,8 +182,8 @@ class SwaggerRequestsGenerator {
 
   Expression _getParameterAnnotation(SwaggerRequestParameter parameter) {
     switch (parameter.inParameter) {
-      case 'formData':
-        return refer('Field').call([]);
+      case kFormData:
+        return refer(kField).call([]);
       case kPath:
         return refer(parameter.inParameter.pascalCase)
             .call([literalString(parameter.name)]);
@@ -213,7 +211,10 @@ class SwaggerRequestsGenerator {
       return _getEnumParameterTypeName(
           parameterName: parameter.name, path: path, requestType: requestType);
     } else if (parameter.items?.type.isNotEmpty == true) {
-      return 'List<${_mapParameterName(parameter.items!.type)}>';
+      return _mapParameterName(parameter.items!.type).asList();
+    } else if(parameter.schema?.items?.ref.isNotEmpty == true)
+    {
+      return parameter.schema!.items!.ref.getRef().asList();
     } else if (parameter.schema?.ref.isNotEmpty == true) {
       return parameter.schema!.ref.getRef();
     }
@@ -249,7 +250,7 @@ class SwaggerRequestsGenerator {
                   parameter: swaggerParameter,
                   path: path,
                   requestType: requestType,
-                ).asParameterType().makeNullable(),
+                ).makeNullable(),
               )
               ..named = true
               ..annotations.add(
@@ -311,17 +312,17 @@ class SwaggerRequestsGenerator {
         return null;
       }
 
-      return 'List<$mappedArrayType>';
+      return mappedArrayType.asList();
     }
 
-    return responseType;
+    return kBasicTypesMap[responseType] ?? responseType;
   }
 
   String? _getReturnTypeFromSchema(SwaggerResponse swaggerResponse) {
     final listRef = swaggerResponse.schema?.items?.ref ?? '';
 
     if (listRef.isNotEmpty) {
-      return 'List<${listRef.getRef()}>';
+      return listRef.getRef().asList();
     }
 
     final ref = swaggerResponse.schema?.ref ?? swaggerResponse.ref;
@@ -355,12 +356,12 @@ class SwaggerRequestsGenerator {
           final originalRef = swaggerResponse.schema?.items?.originalRef ?? '';
 
           if (originalRef.isNotEmpty) {
-            return 'List<${kBasicTypesMap[originalRef]}>';
+            return kBasicTypesMap[originalRef]!.asList();
           }
 
           final ref = swaggerResponse.content.firstOrNull?.items?.ref ?? '';
           if (ref.isNotEmpty) {
-            return 'List<${kBasicTypesMap[ref]}>';
+            return kBasicTypesMap[ref]!.asList();
           }
         }
 

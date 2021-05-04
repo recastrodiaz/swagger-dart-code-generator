@@ -54,7 +54,7 @@ const $PetStatusMap = {
   PetStatus.swaggerGeneratedUnknown: ''
 };
 
-enum PetFindByStatusGetStatus {
+enum PetFindByStatus$Get$Status {
   @JsonValue('swaggerGeneratedUnknown')
   swaggerGeneratedUnknown,
   @JsonValue('available')
@@ -65,14 +65,14 @@ enum PetFindByStatusGetStatus {
   sold
 }
 
-const $PetFindByStatusGetStatusMap = {
-  PetFindByStatusGetStatus.available: 'available',
-  PetFindByStatusGetStatus.pending: 'pending',
-  PetFindByStatusGetStatus.sold: 'sold',
-  PetFindByStatusGetStatus.swaggerGeneratedUnknown: ''
+const $PetFindByStatus$Get$StatusMap = {
+  PetFindByStatus$Get$Status.available: 'available',
+  PetFindByStatus$Get$Status.pending: 'pending',
+  PetFindByStatus$Get$Status.sold: 'sold',
+  PetFindByStatus$Get$Status.swaggerGeneratedUnknown: ''
 };
 
-enum PetFindByStatusGetColor {
+enum PetFindByStatus$Get$Color {
   @JsonValue('swaggerGeneratedUnknown')
   swaggerGeneratedUnknown,
   @JsonValue('red')
@@ -83,9 +83,9 @@ enum PetFindByStatusGetColor {
   yellow
 }
 
-const $PetFindByStatusGetColorMap = {
-  PetFindByStatusGetColor.red: 'red',
-  PetFindByStatusGetColor.green: 'green',
-  PetFindByStatusGetColor.yellow: 'yellow',
-  PetFindByStatusGetColor.swaggerGeneratedUnknown: ''
+const $PetFindByStatus$Get$ColorMap = {
+  PetFindByStatus$Get$Color.red: 'red',
+  PetFindByStatus$Get$Color.green: 'green',
+  PetFindByStatus$Get$Color.yellow: 'yellow',
+  PetFindByStatus$Get$Color.swaggerGeneratedUnknown: ''
 };

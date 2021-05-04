@@ -26,6 +26,10 @@ extension TypeExtension on String {
 
   String getRef() => split('/').last.pascalCase;
 
+  String asList() => 'List<$this>';
+
+  String asFutureResponse() => 'Future<chopper.Response<$this>>';
+
   String asParameterName() {
     if (isEmpty) {
       return this;
@@ -54,7 +58,7 @@ extension TypeExtension on String {
     }
 
     final result =
-        split('-').map((String str) => str.capitalize).toList().join();
+        split('-').map((String str) => str == str.capitalize).toList().join();
 
     return result;
   }

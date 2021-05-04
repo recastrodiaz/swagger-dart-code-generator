@@ -216,7 +216,7 @@ abstract class SwaggerModelsGenerator {
     final correctedPath = generateFieldName(path);
 
     final result =
-        '${correctedPath.capitalize}${requestType.capitalize}${parameterName.capitalize}';
+        '${correctedPath.capitalize}\$${requestType.capitalize}\$${parameterName.capitalize}';
 
     return SwaggerModelsGenerator.getValidatedClassName(result);
   }

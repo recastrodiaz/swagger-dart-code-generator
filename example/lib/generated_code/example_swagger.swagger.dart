@@ -42,8 +42,8 @@ abstract class ExampleSwagger extends ChopperService {
   ///@param color Status values that need to be considered for filter
   @Get(path: '/pet/findByStatus')
   Future<chopper.Response<List<Pet>>> petFindByStatusGet(
-      {@Query() required Enums.PetFindByStatus$Get$Status? status,
-      @Query() required Enums.PetFindByStatus$Get$Color? color});
+      {@Query() required enums.PetFindByStatus$Get$Status? status,
+      @Query() required enums.PetFindByStatus$Get$Color? color});
 
   ///Finds Pets by tags
   ///@param tags Tags to filter by
@@ -55,7 +55,7 @@ abstract class ExampleSwagger extends ChopperService {
   ///@param petId ID of pet to return
   @Get(path: '/pet/{petId}')
   Future<chopper.Response<Pet>> petPetIdGet(
-      {@Path('petId') required Int? petId});
+      {@Path('petId') required int? petId});
 
   ///Updates a pet in the store with form data
   ///@param petId ID of pet that needs to be updated
@@ -63,7 +63,7 @@ abstract class ExampleSwagger extends ChopperService {
   ///@param status Updated status of the pet
   @Post(path: '/pet/{petId}')
   Future<chopper.Response> petPetIdPost(
-      {@Path('petId') required Int? petId,
+      {@Path('petId') required int? petId,
       @Field() required String? name,
       @Field() required String? status});
 
@@ -72,7 +72,7 @@ abstract class ExampleSwagger extends ChopperService {
   ///@param petId Pet id to delete
   @Delete(path: '/pet/{petId}')
   Future<chopper.Response> petPetIdDelete(
-      {@Header() required String? api_key, @Path('petId') required Int? petId});
+      {@Header() required String? api_key, @Path('petId') required int? petId});
 
   ///uploads an image
   ///@param petId ID of pet to update
@@ -80,7 +80,7 @@ abstract class ExampleSwagger extends ChopperService {
   ///@param file file to upload
   @Post(path: '/pet/{petId}/uploadImage')
   Future<chopper.Response<ApiResponse>> petPetIdUploadImagePost(
-      {@Path('petId') required Int? petId,
+      {@Path('petId') required int? petId,
       @Field() required String? additionalMetadata,
       @Field() required List<String>? file});
 
@@ -98,13 +98,13 @@ abstract class ExampleSwagger extends ChopperService {
   ///@param orderId ID of pet that needs to be fetched
   @Get(path: '/store/order/{orderId}')
   Future<chopper.Response<Order>> storeOrderOrderIdGet(
-      {@Path('orderId') required Int? orderId});
+      {@Path('orderId') required int? orderId});
 
   ///Delete purchase order by ID
   ///@param orderId ID of the order that needs to be deleted
   @Delete(path: '/store/order/{orderId}')
   Future<chopper.Response> storeOrderOrderIdDelete(
-      {@Path('orderId') required Int? orderId});
+      {@Path('orderId') required int? orderId});
 
   ///Create user
   ///@param body Created user object
@@ -115,19 +115,19 @@ abstract class ExampleSwagger extends ChopperService {
   ///@param body List of user object
   @Post(path: '/user/createWithArray')
   Future<chopper.Response> userCreateWithArrayPost(
-      {@Body() required Array? body});
+      {@Body() required List<User>? body});
 
   ///Creates list of users with given input array
   ///@param body List of user object
   @Post(path: '/user/createWithList')
   Future<chopper.Response> userCreateWithListPost(
-      {@Body() required Array? body});
+      {@Body() required List<User>? body});
 
   ///Logs user into the system
   ///@param username The user name for login
   ///@param password The password for login in clear text
   @Get(path: '/user/login')
-  Future<chopper.Response<string>> userLoginGet(
+  Future<chopper.Response<String>> userLoginGet(
       {@Query() required String? username, @Query() required String? password});
 
   ///Logs out current logged in user session
