@@ -1,23 +1,14 @@
 import 'dart:convert';
 
 import 'package:swagger_dart_code_generator/src/code_generators/swagger_additions_generator.dart';
-import 'package:swagger_dart_code_generator/src/code_generators/swagger_converter_generator.dart';
 import 'package:swagger_dart_code_generator/src/code_generators/swagger_enums_generator.dart';
 import 'package:swagger_dart_code_generator/src/code_generators/swagger_models_generator.dart';
 import 'package:swagger_dart_code_generator/src/code_generators/swagger_requests_generator.dart';
-import 'package:swagger_dart_code_generator/src/code_generators/v2/swagger_enums_generator_v2.dart';
 import 'package:swagger_dart_code_generator/src/code_generators/v2/swagger_models_generator_v2.dart';
-import 'package:swagger_dart_code_generator/src/code_generators/v3/swagger_enums_generator_v3.dart';
 import 'package:swagger_dart_code_generator/src/code_generators/v3/swagger_models_generator_v3.dart';
 import 'package:swagger_dart_code_generator/src/models/generator_options.dart';
 
 class SwaggerCodeGenerator {
-  final Map<int, SwaggerEnumsGenerator> _enumsMap =
-      <int, SwaggerEnumsGenerator>{
-    2: SwaggerEnumsGeneratorV2(),
-    3: SwaggerEnumsGeneratorV3()
-  };
-
   final Map<int, SwaggerModelsGenerator> _modelsMap =
       <int, SwaggerModelsGenerator>{
     2: SwaggerModelsGeneratorV2(),
@@ -79,9 +70,7 @@ class SwaggerCodeGenerator {
   // SwaggerConverterGenerator _getSwaggerConverterGenerator(String dartCode) =>
   //     SwaggerConverterGenerator();
 
-  SwaggerEnumsGenerator _getSwaggerEnumsGenerator(String dartCode) =>
-      _enumsMap[_getApiVersion(dartCode)]!;
-
+  SwaggerEnumsGenerator _getSwaggerEnumsGenerator(String dartCode) => SwaggerEnumsGenerator();
   SwaggerModelsGenerator _getSwaggerModelsGenerator(String dartCode) =>
       _modelsMap[_getApiVersion(dartCode)]!;
 }

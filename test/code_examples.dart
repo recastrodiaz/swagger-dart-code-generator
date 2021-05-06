@@ -2240,6 +2240,32 @@ const aaa = '''
       "in": "header"
     }
   },
+  "components": {
+    "responses": {
+      "SpaResponse": {
+        "description": "Success",
+        "content": {
+          "application/json": {
+            "schema": {
+              "required": [
+                "showPageAvailable"
+              ],
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "description": "Crid show (VOD)"
+                },
+                "showPageAvailable": {
+                  "type": "boolean",
+                  "description": "Flag indicating showPage availability"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
   "definitions": {
     "Order": {
       "type": "object",

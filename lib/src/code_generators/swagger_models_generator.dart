@@ -1,8 +1,8 @@
 import 'package:swagger_dart_code_generator/src/code_generators/constants.dart';
+import 'package:swagger_dart_code_generator/src/code_generators/swagger_enums_generator.dart';
 import 'package:swagger_dart_code_generator/src/code_generators/swagger_requests_generator.dart';
 import 'package:swagger_dart_code_generator/src/models/generator_options.dart';
 import 'package:recase/recase.dart';
-import 'package:swagger_dart_code_generator/src/code_generators/v2/swagger_enums_generator_v2.dart';
 import 'package:swagger_dart_code_generator/src/extensions/string_extension.dart';
 import 'package:swagger_dart_code_generator/src/exception_words.dart';
 import 'package:swagger_dart_code_generator/src/swagger_models/responses/swagger_schema.dart';
@@ -169,7 +169,7 @@ abstract class SwaggerModelsGenerator {
         if (parameter.format == 'date-time' || parameter.format == 'date') {
           return 'DateTime';
         } else if (parameter.enumValues.isNotEmpty) {
-          return 'enums.${SwaggerModelsGenerator.getValidatedClassName(SwaggerEnumsGeneratorV2().generateEnumName(className, parameterName))}';
+          return 'enums.${SwaggerModelsGenerator.getValidatedClassName(SwaggerEnumsGenerator().generateEnumName(className, parameterName))}';
         }
         return 'String';
       case 'number':
