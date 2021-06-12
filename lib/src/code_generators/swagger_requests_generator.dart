@@ -176,8 +176,11 @@ $allMethodsContent
         if (swaggerRequest.parameters
                 .every((parameter) => parameter.inParameter != 'body') &&
             swaggerRequest.type.toLowerCase() == 'post') {
-          swaggerRequest.parameters.add(SwaggerRequestParameter(
-              inParameter: 'body', name: 'body', isRequired: true));
+          // Commented out as it otherwise creates a @Body chopper parameter that prevents
+          // the request body from being generated when having formData and header parameters
+          // This issue was introduced in https://github.com/epam-cross-platform-lab/swagger-dart-code-generator/pull/128/files
+          // swaggerRequest.parameters.add(SwaggerRequestParameter(
+          //    inParameter: 'body', name: 'body', isRequired: true));
         }
 
         final allParametersContent = getAllParametersContent(
