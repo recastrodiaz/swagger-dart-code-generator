@@ -402,7 +402,7 @@ class SwaggerRequestsGenerator {
         .map(
           (swaggerParameter) => Parameter(
             (p) => p
-              ..name = swaggerParameter.name.asParameterName()
+              ..name = swaggerParameter.name.asParameterName().snakeCase
               ..named = true
               ..required = swaggerParameter.isRequired &&
                   _getHeaderDefaultValue(swaggerParameter, options) == null &&
