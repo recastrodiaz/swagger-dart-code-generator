@@ -55,7 +55,7 @@ class SwaggerModelsGeneratorV3 extends SwaggerModelsGenerator {
 
         final schema = firstContent == null ? null : firstContent['schema'];
 
-        if (schema != null) {
+        if (schema != null && schema['\$ref'] == null) {
           result.addAll({key: schema});
         }
       }
@@ -175,8 +175,9 @@ class SwaggerModelsGeneratorV3 extends SwaggerModelsGenerator {
               (property['items'] != null &&
                   property['items']['enum'] != null)) {
             results.add(SwaggerModelsGenerator.getValidatedClassName(
-                SwaggerEnumsGeneratorV3()
-                    .generateEnumName(className, propertyName)));
+                SwaggerEnumsGeneratorV3().generateEnumName(
+                    SwaggerModelsGenerator.getValidatedClassName(className),
+                    propertyName)));
           }
         });
       });

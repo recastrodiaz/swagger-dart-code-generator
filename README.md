@@ -2,6 +2,8 @@
 <img src="https://raw.githubusercontent.com/epam-cross-platform-lab/swagger-dart-code-generator/master/assets/lib_full_logo.png" height="100" alt="Swagger dart code generator" />
 </p>
 
+Code partially generated with [chopper](https://pub.dev/packages/chopper)
+
 # :mega: **Build dart types from Swagger/OpenAPI schemas**
 
 [![pub package](https://img.shields.io/pub/v/swagger_dart_code_generator.svg)](https://pub.dartlang.org/packages/swagger_dart_code_generator)
@@ -75,8 +77,9 @@ targets:
 | `use_required_attribute_for_headers` | `true` | `false` | If this option is false, generator will not add @required attribute to headers. |
 | `with_converter` | `true` | `false` | If option is true, combination of all mappings will be generated. |
 | `ignore_headers` | `false` | `false` | If option is true, headers will not be generated. |
-| `use_path_for_request_names` | `false` | `false` | If property == `false`, then method name == operationId ?? path+methodType. If `true` - only path+methodType. |
 | `enums_case_sensitive` | `true` | `false` | If value is false, 'enumValue' will be defined like Enum.enumValue even it's json key equals 'ENUMVALUE' |
+| `include_paths` | `[]` | `false` | List<String> If not empty - includes only paths matching reges |
+| `exclude_paths` | `[]` | `false` | List<String> If not empty -exclude paths matching reges |
 | `use_default_null_for_lists` | `false` | `false` | If option is true, default value for lists will be null, otherwise - [] |
 | `build_only_models` | `false` | `false` | If option is true, chopper classes will not be generated. |
 | `include_if_null` | `null` | `false` | Enables or disables includeIfNull JsonAnnotation feature and sets value for it. See [IncludeIfNull](#includeIfNull-for-model-generation). |
@@ -108,9 +111,15 @@ targets:
         options:
           input_folder: 'lib/swaggers'
           output_folder: 'lib/generated_code/'
-          include_if_null:
+          include_paths:
+            - "pet/*"
+            - "store/*"
+          exclude_paths:
+            - "exception"
+          include_if_null: NOTE! FOR 2.1.0 and higher use just include_if_null: true/false
             enabled: true
             value: false
+          
 ```
 
 ### **Default Value Map for model generation**

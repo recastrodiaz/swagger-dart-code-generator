@@ -1,3 +1,76 @@
+# 2.1.0-prerelease.6
+
+* **BREAKING**: Added dollar signs to generated converter and mappings
+
+# 2.1.0-prerelease.5
+
+* Fixed Issue ([#212](https://github.com/epam-cross-platform-lab/swagger-dart-code-generator/issues/212))
+* Fixed border cases with parameters with duplicated names (for ex 'book' and 'book[]')
+* Fixed cases when Parameters contains forbidden characters
+
+# 2.1.0-prerelease.4
+
+* Fixed Issue ([#208](https://github.com/epam-cross-platform-lab/swagger-dart-code-generator/issues/208))
+* Fixed cases with dashes in request named
+* Fixed models from responses names generation
+
+# 2.1.0-prerelease.3
+
+* **BREAKING**: includeIfNull now just bool? value. Needs update of build.yaml if this feature used
+
+# 2.1.0-prerelease.2
+
+* Fixed Issue ([#201](https://github.com/epam-cross-platform-lab/swagger-dart-code-generator/issues/201))
+
+* Fixed Issue ([#202](https://github.com/epam-cross-platform-lab/swagger-dart-code-generator/issues/202))
+
+* Added support .json files instead .swagger (.swagger are supported too)
+
+* Fixed errors when models has symbols, dots, numbers...
+
+
+# 2.1.0-prerelease.1
+
+* Fully refactored requests generator
+
+# 2.0.8+1
+
+* Fixed Issue ([#187](https://github.com/epam-cross-platform-lab/swagger-dart-code-generator/issues/187)) It's about request parameters named "client"
+
+* Fixed Issue ([#188](https://github.com/epam-cross-platform-lab/swagger-dart-code-generator/issues/188)) It's about isses with enum names generation.
+
+# 2.0.8
+
+* Fix case when enum in model has name with underscores.
+* Updated logo design
+
+# 2.0.7+1
+
+* Fixed Issue ([#190](https://github.com/epam-cross-platform-lab/swagger-dart-code-generator/issues/190))
+* Fixed case when request does not have type specified. Made it Object.
+
+# 2.0.7
+
+* Fixed models generator in cases of List of Lists of Lists of... of some type
+* Formatted code
+
+# 2.0.6+1
+
+* Fixed Issue ([#72](https://github.com/epam-cross-platform-lab/swagger-dart-code-generator/issues/72))
+
+# 2.0.6
+
+* Fixed Issue ([#163](https://github.com/epam-cross-platform-lab/swagger-dart-code-generator/issues/163))
+* Updated logo design
+
+# 2.0.5+2
+
+* Fixed issue with list of enums in request parameter
+
+# 2.0.5
+
+* Added new generator_options
+
 # 2.0.4
 
 * Added equals override method to all Models
